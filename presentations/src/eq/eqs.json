@@ -1,0 +1,50 @@
+[
+ {
+  "name": "eq_R",
+  "src": "R = \\frac{n_{e,\\,\\mathrm{center}}}{n_{e,\\,\\mathrm{edge}}}"
+ },
+ {
+  "name": "eq_J",
+  "src": "\\begin{bmatrix}\\Delta\\ln\\bar n\\\\ \\Delta\\ln R\\end{bmatrix} = \\begin{bmatrix}J_{11} & J_{12}\\\\ J_{21} & J_{22}\\end{bmatrix}\\begin{bmatrix}\\Delta\\ln P_{\\mathrm{tot}}\\\\ \\Delta x\\end{bmatrix}"
+ },
+ {
+  "name": "eq_lambda",
+  "src": "\\lambda_\\varepsilon \\approx 119\\ \\mathrm{cm}\\times\\frac{1\\ \\mathrm{mTorr}}{p}"
+ },
+ {
+  "name": "eq_gR",
+  "src": "g_R = 1 - e^{-\\Delta/\\lambda_\\varepsilon}"
+ },
+ {
+  "name": "eq_balance",
+  "src": "n_k \\approx \\frac{P_k}{e\\,u_B\\,\\varepsilon_T\\,A_{\\mathrm{eff},k}}\\ \\Rightarrow\\ \\ln R = \\ln\\frac{P_c}{P_e} + \\underbrace{\\ln\\frac{(u_B\\varepsilon_T A_{\\mathrm{eff}})_e}{(u_B\\varepsilon_T A_{\\mathrm{eff}})_c}}_{\\text{손실 비대칭}}"
+ },
+ {
+  "name": "eq_phase",
+  "src": "P_{\\mathrm{exch}} = \\left(\\omega M_{12} + X'_{12}\\right)k\\,|I_1|^2\\sin\\varphi"
+ },
+ {
+  "name": "eq_split",
+  "src": "\\Delta\\ln n(r_i) = a_0 + a_1\\,\\psi(r_i) + \\varepsilon_i"
+ },
+ {
+  "name": "eq_RG",
+  "src": "R_\\Gamma = R\\,\\sqrt{T_{e,c}/T_{e,e}}"
+ },
+ {
+  "name": "eq_step1",
+  "src": "\\Delta x = \\frac{\\Delta\\ln R^*}{J_{22}}"
+ },
+ {
+  "name": "eq_step2",
+  "src": "\\Delta\\ln P = \\frac{\\Delta\\ln\\bar n^* - J_{12}\\,\\Delta x}{J_{11}}"
+ },
+ {
+  "name": "eq_bal1",
+  "src": "n_k \\approx \\frac{P_k}{e\\,u_B\\,\\varepsilon_T\\,A_{\\mathrm{eff},k}}"
+ },
+ {
+  "name": "eq_bal2",
+  "src": "\\ln R = \\ln\\frac{P_c}{P_e} + (\\text{손실 비대칭 항})"
+ }
+]
