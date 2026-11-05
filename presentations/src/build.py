@@ -224,7 +224,7 @@ for lv, name, mean, crit, pat, col, light, tag in cards:
     w = 2.88
     box(s, x, 2.75, w, 3.05, fill=light, line=col if tag else None, lw=1.5, radius=0.1)
     if tag:
-        chip(s, x + w - 1.05, 2.85, 0.95, 0.3, tag, col, size=11, radius=0.05)
+        chip(s, x + 0.1, 2.85, 0.85, 0.3, tag, col, size=11, radius=0.05)
     mx, my, cs = x + w / 2 - 0.42, 2.92, 0.38
     shades = {'L0': [[col, col], ['B8BECB', 'B8BECB']],
               'L1': [[col, '8FA9C9'], ['8FA9C9', col]],
@@ -321,9 +321,10 @@ plot_layout(ch, *lay)
 # 분포 반전 표시: 50 mTorr 150 W 쌍
 px0, pw = cx_ + cw_ * lay[0], cw_ * lay[2]
 py0, ph = cy_ + ch_ * lay[1], ch_ * lay[3]
-xa = px0 + pw * (2.5 / 4) + 0.21
-seg(s, xa, 2.02, xa, py0 + ph * (3.5 - 0.62) / 3.5, color=C['ORANGE_D'], w=2.25, head=True)
-tb(s, xa - 1.85, 1.84, 1.8, 0.28, ['공진 → 분포 반전'], size=12, bold=True, color=C['ORANGE_D'], align='r')
+xc3 = px0 + pw * (2.5 / 4)
+yv7 = lambda v: py0 + ph * (3.5 - v) / 3.5
+seg(s, xc3 + 0.02, yv7(2.54) + 0.08, xc3 + 0.2, yv7(0.39) - 0.38, color=C['ORANGE_D'], w=2.25, head=True)
+tb(s, xc3 - 1.6, 1.84, 1.8, 0.28, ['공진 → 분포 반전'], size=12, bold=True, color=C['ORANGE_D'], align='r')
 tb(s, 0.62, 4.85, 5.1, 0.28, ['옅은 보라 띠: 이 과제의 목표 R 0.8–1.2'], size=11.5, color=C['MUTED'])
 panel(s, 6.0, 1.42, 3.5, 3.7, '실험 구성', [
     dict(t='챔버 r 19 cm, 높이 10 cm', bullet=True),
@@ -417,10 +418,14 @@ sr.marker.format.line.color.rgb = rgb('FFFFFF')
 sr = ser[2]; sr.smooth = False
 sr.format.line.color.rgb = rgb(C['AMBER']); sr.format.line.width = Pt(1.75); sr.format.line.dash_style = MSO_LINE.DASH
 sr.marker.style = XL_MARKER_STYLE.NONE
-label_point(sr.points[1], 'p* ≈ 16 mTorr (λ_{ε} = Δ)', XL_LABEL_POSITION.LEFT, size=12, color=C['AMBER'], bold=True)
 style_axis(ch.category_axis, 0, 30, 5, '0', grid=False, size=12)
 style_axis(ch.value_axis, 0, 1.0, 0.2, '0.0', grid=True, size=12)
 axis_title(ch.category_axis, '압력 p (mTorr)', size=12); axis_title(ch.value_axis, 'g_{R}', size=12)
+lay10 = (0.14, 0.04, 0.82, 0.78)
+plot_layout(ch, *lay10)
+gx0, gw = 0.5 + 5.2 * lay10[0], 5.2 * lay10[2]
+gy0, gh = 1.38 + 3.95 * lay10[1], 3.95 * lay10[3]
+tb(s, gx0 + gw * 16.6 / 30, gy0 + gh * (1 - 0.5), 1.9, 0.56, ['p* ≈ 16 mTorr', '(λ_{ε} = Δ)'], size=12, bold=True, color=C['AMBER'], space_after=0)
 eq(s, 'eq_lambda', 5.95, 1.42, pt=17)
 eq(s, 'eq_gR', 5.95, 2.2, pt=17)
 tb(s, 5.95, 2.75, 3.55, 1.0, ['g_{R}: 분배를 바꿨을 때 R이 움직이는 힘 (완전 국소 가열 = 1)',
@@ -458,7 +463,7 @@ for sx in (-1, 1):
         circle(s, ax_x + sx * r_ * k, wy - 0.24, 0.15, fill=C['BLUE'])
     circle(s, ax_x + sx * 15.5 * k, wy - 0.24, 0.15, fill=C['ORANGE'])
 seg(s, ax_x, wy - 0.4, ax_x, wf_y + 0.2, color=C['MUTED'], w=1, dash=True)
-tb(s, ax_x - 0.8, wf_y + 0.18, 1.6, 0.28, ['축 (E_{θ} = 0)'], size=12, color=C['DARK'], align='c')
+tb(s, ax_x - 0.8, wf_y + 0.17, 1.6, 0.3, ['축 (E_{θ} = 0)'], size=12.5, color=C['DARK'], align='c')
 # 코일 라벨: 왼쪽 코일 바로 위
 tb(s, ax_x - 8 * k - 0.95, wy - 0.68, 1.9, 0.28, ['[[b:안쪽 코일]] r ≈ 8 cm, 2턴'], size=12, align='c')
 tb(s, 0.3, wy - 0.74, 1.38, 0.75, ['[[o:바깥 코일]]', 'r ≈ 15.5 cm', '1–2턴'], size=12, space_after=0, align='r')
@@ -470,10 +475,10 @@ tb(s, ax_x + 8 * k - 0.2, yd - 0.31, 7.5 * k + 0.4, 0.28, ['Δ = 7.5 cm'], size=
 xl = ax_x + 18.6 * k
 seg(s, xl, wy + 0.02, xl, wf_y - 0.02, color=C['TEXT'], w=1.25, head=True, tail=True)
 tb(s, xl - 1.25, wy + 1.0, 1.18, 0.28, ['L = 10 cm'], size=12.5, bold=True, color=C['TEXT'], align='r')
-tb(s, ax_x - 12 * k + 0.06, wy + 0.06, 1.3, 0.28, ['경계 12 cm'], size=12, color=C['DARK'])
+tb(s, ax_x - 12 * k + 0.06, wy + 0.06, 1.4, 0.3, ['경계 12 cm'], size=12.5, color=C['DARK'])
 tb(s, ax_x - 1.75, wy + 0.62, 1.6, 0.3, ['중앙 영역'], size=13, bold=True, color=C['BLUE'], align='r')
 tb(s, ax_x + 12.5 * k, wy + 0.5, 0.95, 0.3, ['가장자리'], size=13, bold=True, color=C['ORANGE_D'])
-tb(s, ax_x - 1.8, wf_y + 0.42, 3.6, 0.28, ['웨이퍼 300 mm · 측벽 r = 20 cm'], size=12, color=C['DARK'], align='c')
+tb(s, ax_x - 1.8, wf_y + 0.43, 3.6, 0.3, ['웨이퍼 300 mm · 측벽 r = 20 cm'], size=12.5, color=C['DARK'], align='c')
 rows = [['항목', '값', '이유'],
         ['창–웨이퍼 간격 L', '10 cm', '확산 누설 e^{−πΔ/L} ≈ 0.10 (퍼짐 길이 ℓ = L/π ≈ 3.2 cm)'],
         ['안쪽 코일', 'r ≈ 8 cm, 2턴', '축 위 E_{θ} = 0 → 축에 붙이면 가열이 약해 도넛 가열'],
@@ -536,24 +541,21 @@ axis_title(ch.value_axis, '밀도비 R', size=12); axis_title(ch.category_axis, 
 plot_layout(ch, *lay)
 px0, pw = cx_ + cw_ * lay[0], cw_ * lay[2]
 py0 = cy_ + ch_ * lay[1]
-for i in range(5):
-    xc = px0 + pw * (i + 0.5) / 5
-    tb(s, xc - 0.3, py0 - 0.3, 0.6, 0.28, ['↑'], size=13, bold=True, color=C['NAVY'], align='c')
 lx = 6.1
-items = [(C['NAVY'], '코일 선택도 한계 안에서 낼 수 있는 R (↑ 위로 계속)'),
+items = [(C['NAVY'], '코일 선택도 한계 안에서 낼 수 있는 R'),
          ('C3D0EA', '중앙 몫을 2%까지 줄여야 닿는 부분'),
          (C['TARGET'], '목표 R 0.8–1.2')]
 for i, (col, txt) in enumerate(items):
     yy = 1.5 + i * 0.45
     box(s, lx, yy + 0.05, 0.28, 0.28, fill=col, radius=0.03)
     tb(s, lx + 0.38, yy, 3.0, 0.42, [txt], size=12.5, anchor='m')
-tb(s, lx, 2.9, 3.4, 0.3, ['막대 아래 숫자 = 낼 수 있는 R의 하한'], size=12, color=C['DARK'])
+tb(s, lx, 2.85, 3.4, 0.6, ['막대 아래 숫자 = 낼 수 있는 R의 하한', '막대는 1.6 위로 계속된다 (최대 2.0–6.0)'], size=12, color=C['DARK'], space_after=2)
 rows = [['압력', '판정'],
         ['5, 10 mTorr', '0.8에 못 닿음'],
         ['15 mTorr', '[[a:경계]]'],
         ['20, 30 mTorr', '[[n:여유]]']]
-table(s, lx, 3.3, [1.6, 1.8], rows, size=13, row_h=0.38, col_align=['l', 'c'])
-tb(s, lx, 4.95, 3.4, 1.15, ['같은 전력 밀도의 R ≈ 1.36–1.47 → 운전은 늘 가장자리에 전력을 더 준다',
+table(s, lx, 3.55, [1.6, 1.8], rows, size=13, row_h=0.38, col_align=['l', 'c'])
+tb(s, lx, 5.2, 3.4, 1.1, ['같은 전력 밀도의 R ≈ 1.36–1.47 → 운전은 늘 가장자리에 전력을 더 준다',
                             'R 1.2 → 0.8에서 총 전력을 고정하면 n̄ −4%'], size=12.5, bullet=True, space_after=5)
 foot(s, '2-영역 0D, 설계 형상, 흡수 전력 300 W, 영역 전력 직접 지정 = 어떤 구동이든 분배를 마음대로 정할 때의 범위 (계산). 같은 모델이 KC20 공진의 R 변화를 과소평가 → 절대 범위는 V1·V2에서 재확인', y=6.32, h=0.5)
 notes(s, 'Q1에 대한 답이다. 이 그래프는 영역 전력을 직접 지정한 계산이라, 어떤 구동 방식이든 분배를 마음대로 정할 수 있을 때 압력별로 낼 수 있는 R의 범위다.\n'
@@ -641,8 +643,12 @@ sr[1].smooth = False; sr[1].format.line.fill.background()
 sr[1].marker.style = XL_MARKER_STYLE.CIRCLE; sr[1].marker.size = 11
 sr[1].marker.format.fill.solid(); sr[1].marker.format.fill.fore_color.rgb = rgb(C['INDIGO'])
 sr[1].marker.format.line.color.rgb = rgb('FFFFFF')
-label_point(sr[1].points[0], '0° 동상', XL_LABEL_POSITION.RIGHT, size=12, color=C['NAVY'], bold=True)
-label_point(sr[1].points[1], '180° 역상', XL_LABEL_POSITION.RIGHT, size=12, color=C['AMBER'], bold=True)
+for k_ in (0, 2):
+    sr[1].points[k_].marker.style = XL_MARKER_STYLE.NONE
+def yv(v):
+    return py0 + ph * (1 - v) / 2
+tb(s, px0 + pw * 6 / 360, yv(-0.06), 1.2, 0.28, ['0° 동상'], size=12.5, bold=True, color=C['NAVY'])
+tb(s, px0 + pw * 186 / 360, yv(0.3), 1.2, 0.28, ['180° 역상'], size=12.5, bold=True, color=C['AMBER'])
 style_axis(ch.category_axis, 0, 360, 90, '0', grid=False, size=12)
 style_axis(ch.value_axis, -1, 1, 0.5, '0.0', grid=True, size=12)
 ch.value_axis.crosses = XL_AXIS_CROSSES.MINIMUM
@@ -665,7 +671,7 @@ notes(s, '같은 주파수의 두 전원을 쓰면 상호 인덕턴스를 통해
 
 # =================================================================== 17 phase compare
 s = new('phase_cmp', '4. 구동 구조 · 위상 비교 (중앙 전력 몫 0.20, 300 W, 계산)', '0°는 독립성, 180°는 이득이 낫다 → 기준 0°', 'Ⅳ')
-B0 = '[[n:0°]]'; B1 = '[[d:180°]]'
+B0 = '[[n:0°]]'; B1 = '[[a:180°]]'
 rows = [['항목', 'φ = 0° (동상)', 'φ = 180° (역상)', '유리'],
         ['[[i:분배의 밀도 의존]] ∂ln(P_{c}/P_{e})/∂ln n', '−0.10 ~ −0.01', '+0.41 ~ +0.73', B0],
         ['위상 허용 오차 (교환 ≤ 10%)', '±19–38°', '±4–12°', B0],
@@ -675,6 +681,7 @@ rows = [['항목', 'φ = 0° (동상)', 'φ = 180° (역상)', '유리'],
         ['경계 ±3 cm 띠에 흡수되는 몫', '0.34–0.35', '0.20–0.22', B1],
         ['안쪽 정합 리액턴스 변화 (X′_{12} 포함)', '+13–24%', '−7–10%', B1]]
 fills = {(1, j): C['INDIGO_L'] for j in range(4)}
+fills.update({(i, 3): C['NAVY_L'] for i in range(1, 5)}); fills.update({(i, 3): C['AMBER_L'] for i in range(5, 8)})
 table(s, 0.5, 1.42, [4.0, 1.9, 1.9, 1.2], rows, size=13, row_h=0.44, col_align=['l', 'c', 'c', 'c'], fills=fills)
 box(s, 0.5, 5.12, 9.0, 1.15, fill=C['INDIGO_L'], radius=0.08, paras=[
     dict(t='[[i:기준 0°]]  밀도가 바뀌어도 분배가 그대로다(독립성). 전류·효율·위상 여유도 낫다', size=13.5, after=5),
@@ -723,8 +730,8 @@ box(s, 2.25, 5.3, 5.0, 0.85, fill=C['INDIGO_L'], line=C['INDIGO'], lw=1.5, dash=
     paras=[dict(t='바깥 루프 (≈ 1 s): FHP → n̄, R_{Γ} → J^{−1} 피드포워드 + 적분', bold=True, size=12.5, color=C['INDIGO'], align='c', after=0),
            dict(t='두 코일 전류의 설정값(총량, 비 k)을 안쪽 루프에 준다', size=12, align='c')], anchor='m', margin=0.06)
 path(s, [(8.475, y2 + bh + 0.02), (8.475, 5.72), (7.27, 5.72)], color=C['INDIGO'], w=1.75, dash=True)
-seg(s, 3.75, 5.3, 3.75, 3.67, color=C['INDIGO'], w=1.75, dash=True, head=True)
-tb(s, 3.82, 3.75, 1.0, 0.28, ['설정값'], size=11.5, bold=True, color=C['INDIGO'])
+seg(s, 3.7, 5.3, 3.7, 3.67, color=C['INDIGO'], w=1.75, dash=True, head=True)
+tb(s, 3.77, 3.75, 1.0, 0.28, ['설정값'], size=12, bold=True, color=C['INDIGO'])
 foot(s, 'R_{Γ}: FHP가 재는 이온 선속비 (≈ R). 선택이 바뀌는 조건: 전원 1대뿐 → 수동 공진(L1 감수) · 15 mTorr 아래 운전 → 자기장 보조 · 경계 분리가 우선이고 위상 유지가 되면 → 180°', y=6.27, h=0.5)
 notes(s, '제출물 ① 영역별 소스·구동부 구성도다. 같은 주파수의 RF 전원 두 대가 각자 정합기를 거쳐 안쪽·바깥 코일을 구동하고, 공통 발진기가 두 전원의 위상을 0°로 묶는다. 파란 점선이 안쪽 루프로, 코일 전류의 크기와 위상을 직접 재서 맞춘다. 주황 점선이 바깥 루프로, 웨이퍼 FHP 배열로 n̄와 R_Γ를 재고 J⁻¹ 피드포워드와 적분 동작으로 두 코일 전류의 설정값을 정한다.\n'
          '이 구조를 고른 이유는 세 가지다. 첫째, 분배를 공진점이 아니라 설정값으로 직접 지정하므로 플라즈마 부하가 바뀌어도 분배가 덜 흔들린다(0°에서 분배의 밀도 의존 0.10 이하). 둘째, 플라즈마만 보면 J가 삼각형이라 두 단일 루프로 나뉜다. 셋째, 기존 회로 모델에 전원 하나를 더하면 바로 계산할 수 있어 검증 경로가 짧다.\n'
@@ -750,7 +757,7 @@ box(s, 0.5, y0 + 3 * rh + 0.08, 9.0, 3 * rh, fill=C['NAVY_L'], radius=0.06, name
 for e in range(LMIN, LMAX + 1, 2):
     x = xt(10 ** e)
     seg(s, x, y0 - 0.02, x, y0 + 7 * rh + 0.16, color='C9CED8', w=0.75)
-for e, lab in [(-8, '10 ns'), (-6, '1 μs'), (-4, '100 μs'), (-2, '10 ms'), (0, '1 s'), (2, '100 s'), (4, '3 시간')]:
+for e, lab in [(-8, '10 ns'), (-6, '1 μs'), (-4, '100 μs'), (-2, '10 ms'), (0, '1 s'), (2, '100 s'), (4, '10^{4} s')]:
     x = xt(10 ** e)
     tb(s, x - 0.45, y0 + 7 * rh + 0.18, 0.9, 0.26, [lab], size=11.5, color=C['MUTED'], align='c')
 for i, (nm, t0, t1, g, val) in enumerate(rows_):
@@ -763,14 +770,17 @@ for i, (nm, t0, t1, g, val) in enumerate(rows_):
     else:
         circle(s, xt(t0), yy + rh / 2, 0.16, fill=col)
         xe = xt(t0) + 0.08
-    tb(s, xe + 0.08, yy, 1.3, rh, [val], size=12, color=col, anchor='m')
+    if g == 'd':
+        tb(s, xt(t0) - 1.38, yy, 1.3, rh, [val], size=12, color=col, anchor='m', align='r')
+    else:
+        tb(s, xe + 0.08, yy, 1.3, rh, [val], size=12, color=col, anchor='m')
 # gap annotation
 ya = y0 + 3 * rh + 0.04
 seg(s, xt(2e-4), ya, xt(0.1), ya, color=C['AMBER'], w=1.75, head=True, tail=True)
 tb(s, xt(0.1) + 0.06, ya - 0.14, 2.3, 0.28, ['약 3자릿수 차이'], size=12, bold=True, color=C['AMBER'], anchor='m')
 loops = [('안쪽 (≤ ms)', '코일 전류의 크기·위상', '전력 대신 전류 기준: VI 프로브 전력은 위상 0.1° 오차에 17% (식 5.33)'),
          ('가운데 (0.1–1 s)', '자동 정합', '정합 위치를 전류비 k의 함수로 미리 옮기는 피드포워드'),
-         ('바깥 (≈ 1 s 측정)', 'FHP로 n̄, R_{Γ}', 'J^{−1} 피드포워드 + 적분. 교차 주파수 ≤ 0.2 rad/s (0.03 Hz), 설정 ≈ 20 s')]
+         ('바깥 (≈ 1 s 측정)', 'FHP로 n̄, R_{Γ}', 'J^{−1} 피드포워드 + 적분. 교차 주파수 ≤ 0.2 rad/s, 설정 시간 약 20 s')]
 x = 0.5
 for head, what, body in loops:
     box(s, x, 4.35, 2.9, 1.5, fill='FFFFFF', line=C['NAVY'], lw=1.25, radius=0.08, paras=[
@@ -854,14 +864,16 @@ s = new('verify', '6. 검증과 한계 · 주장마다 예측값과 판정 기�
 rows = [['가설', '예측 (수식)', '판정 기준', '단계'],
         ['**H1** 압력이 높을수록 분배가 R을 움직이는 힘이 크다', 'g_{R} = 0.5인 압력 ≈ 11 mTorr', '반값 압력 5.5–22 mTorr', 'V1'],
         ['**H2** L이 작을수록 확산 누설이 작다', 'e^{−πΔ/L} = 0.02–0.14', '2D 누설이 식의 0.5–2배', 'V2'],
-        ['**H3** 저압 동반 변화는 비국소 가열·회로 결합 탓', '전류 고정 시 남는 결합 ≈ 1 − g_{R}', '식과 ±30% 안', 'V1'],
+        ['**H3** 저압 동반 변화 = 비국소 가열·회로 결합', '전류 고정 시 남는 결합 ≈ 1 − g_{R}', '식과 ±30% 안', 'V1'],
         ['**H4** (총 전류, 분배) 좌표에서 J가 삼각형', 'J_{21} = 0 (식 2.70), 회로 포함 0°에서 ≤ 0.09', 'J_{21}/J_{11} ≤ 0.1 (L2)', 'V1'],
         ['**H5** 약한 축 자기장이 저압 독립성을 높인다', '5 mTorr, 약 2.7 G에서 λ_{ε⊥} = Δ', '5 mTorr에서 g_{R} ≥ 0.5', 'V2'],
         ['**H6** 0°가 더 독립적, 180°는 이득이 크다', '위상 비교표 (§phase_cmp§쪽)', '180° 채택: 이득 ×2 이상, 누설 ≤ 0.2', 'V1'],
         ['**H7** 20–30 mTorr에서 R 0.8–1.2, n̄ ±5%', 'R 범위 예측 (§predict§쪽)', '|Δln R_{Γ}| ≤ 0.02, n̄ ±5%', 'V1']]
 rows = [[R(c) for c in r] for r in rows]
 table(s, 0.5, 1.42, [3.45, 2.65, 2.2, 0.7], rows, size=12.5, row_h=0.56, col_align=['l', 'l', 'l', 'c'],
-      row_heights=[0.4] + [0.58] * 7, bold_cells={(i, 3) for i in range(1, 8)}, colors={(i, 3): C['NAVY'] for i in range(1, 8)})
+      row_heights=[0.4] + [0.58] * 7, bold_cells={(i, 3) for i in range(1, 8)},
+      colors={(i, 3): ('FFFFFF' if rows[i][3] == 'V1' else C['MUTED']) for i in range(1, 8)},
+      fills={(i, 3): (C['NAVY'] if rows[i][3] == 'V1' else C['PANEL']) for i in range(1, 8)})
 take(s, 0.5, 6.0, 9.0, 0.5, 'V1 = 회로 모델 확장(다음 2주), V2 = 축대칭 2D 계산. 판정은 절대 밀도가 아니라 비(R, g_{R}, 누설)로', kind='i', size=13)
 notes(s, '오늘 말한 주장을 모두 “수식 → 예측값 → 판정 기준”으로 바꿔 두었다. 그래야 다음 단계에서 맞고 틀림을 가릴 수 있다. 판정 범위(예측의 0.5–2배, ±30%)는 0D 근사의 정확도를 고려해 정한 제안값이다.\n'
          '가장 중요한 것은 H1이다. λε 브리지 w = e^(−Δ/λε)는 가정이고, 운전 압력 범위와 목표 도달 압력이 모두 이 가정에 걸려 있다. H4는 J₂₁ = 0이라는 모델 가정을 측정으로 확인하는 것이고, H6은 위상 기준(0° vs 180°)을 확정하는 판정이다. H7이 과제 목표 자체의 판정이다.\n'
@@ -888,10 +900,10 @@ notes(s, '우리가 모르는 것을 정리한다. 결정을 뒤집을 수 있�
          '넷째, 장비가 없으면 구조 자체를 수동 공진으로 바꿔야 하므로 가장 먼저 확인한다.')
 
 # =================================================================== 24 decisions
-s = new('decisions', '6. 검증과 한계 · 팀 합의', '결정 요청 5건과 다음 2주 계획', 'Ⅵ')
+s = new('decisions', '6. 검증과 한계 · 결정 요청', '결정 요청 5건과 다음 2주 계획', 'Ⅵ')
 rows = [['항목', '제안', '근거'],
-        ['위상 기준', '[[n:0°]] (원안 180°는 H6에서 비교)', '§phase_cmp§쪽'],
-        ['운전 압력', '[[n:20–30 mTorr]] 1차 (15는 경계), 그 아래는 자기장 보조 검토', '§predict§쪽'],
+        ['위상 기준', '[[i:0°]] (원안 180°는 H6에서 비교)', '§phase_cmp§쪽'],
+        ['운전 압력', '[[i:20–30 mTorr]] 1차 (15는 경계), 그 아래는 자기장 보조 검토', '§predict§쪽'],
         ['목표 수치', 'R 0.8–1.2, n̄ ±5%', '§task§쪽'],
         ['제어 출력', 'FHP가 재는 R_{Γ}, R은 환산 보고', '§measure§쪽'],
         ['2D 도구', 'COMSOL 가용 여부 확인 뒤 결정', '§model§쪽']]
@@ -962,9 +974,8 @@ right = [dict(t='특허 (본문 확인)', bold=True, color=C['INDIGO'], size=12.
          '[J1] D. Lee et al., Plasma Sources Sci. Technol. 13, 701 (2004)',
          '[J2] 이중 주파수 ICP 2D 유체 계산, Phys. Plasmas 22 (2015)',
          '[C1]–[C6] GEC 2009–2025 학회 초록 (위상 고정 이중 코일, 페라이트 + 평판, 자기장)']
-tb(s, 0.5, 1.42, 4.4, 4.9, left, size=12, space_after=5)
-tb(s, 5.1, 1.42, 4.4, 4.9, right, size=12, space_after=5)
-take(s, 0.5, 6.0, 9.0, 0.5, '수치 표시: (문헌) 출처 값 · (계산) 모델·스크립트 값 · (추정) 차수 어림 · (가정) 근거 없이 둔 값', kind='g', size=12, lead=None)
+tb(s, 0.5, 1.42, 4.4, 5.1, left, size=13, space_after=5)
+tb(s, 5.1, 1.42, 4.4, 5.1, right, size=13, space_after=5)
 notes(s, '참고문헌은 확인 수준에 따라 나눴다. 주장의 근거는 본문을 확인한 교재·학술지·특허로만 대고, 초록만 확인한 자료는 선행 사례 소개에만 쓴다.')
 
 # =================================================================== backup divider
