@@ -27,6 +27,8 @@ FIG = Path(__file__).resolve().parent.parent / "figures"
 DESIGN = dict(R=0.20, L=0.10, a1=0.08, a2=0.155, r_b=0.12)
 DELTA = 0.075          # 코일 간격 Δ [m] (설계)
 TE_REF = 2.5           # 자기장 기준값 계산용 전자 온도 [eV] (가정)
+P_REF = 300.0          # 코일 전류를 환산할 흡수 전력 [W] (가정)
+X_SEL = (0.05, 0.07)   # 바깥 코일만 켜도 중앙에 떨어지는 전력 몫 (코일 선택도 0.93–0.95에서, 계산)
 ME, QE = 9.109e-31, 1.602e-19
 
 
@@ -106,12 +108,21 @@ def phase() -> None:
             band = (r > prm.r_b - 0.03) & (r < prm.r_b + 0.03)
             sens = (ln_rpow(k * 1.1) - ln_rpow(k / 1.1)) / (2 * np.log(1.1))
             dens = (ln_rpow(k, n * 1.1) - ln_rpow(k, n / 1.1)) / (2 * np.log(1.1))
-            tol = np.degrees(np.arcsin(min(1.0, 0.1 * Pp / (w * M12 * k))))
+            # 교환 전력의 상호 리액턴스는 코일 상호 인덕턴스 + 플라즈마 반사 상호 리액턴스 X'12 (2026-11-05 검토로 수정:
+            # 처음 판은 ωM12만 써서 교환 전력을 2–4배 크게, 위상 허용 오차를 좁게 냈다)
+            X12 = float(np.imag(dZ[0, 1]))
+            x_mut = abs(w * M12 + X12)
+            tol = np.degrees(np.arcsin(min(1.0, 0.1 * Pp / (x_mut * k))))
+            # 효율은 두 코일 모두 정합기로 구동하는 구조라 바깥 코일도 R1(0.23 Ω, KC20 측정값)으로 둔다 (가정)
+            eta = Pp / (Pp + prm.R1 * (1 + k**2))
+            I1_300 = np.sqrt(P_REF / Pp)
             rows.append({"n_m3": n, "p_mTorr": p, "phi_deg": phi, "center_fraction": X_C, "k": round(k, 3),
-                         "P_vs_90deg": round(Pp / P90, 3), "eta": round(Pp / (Pp + prm.R1 + prm.R2 * k**2), 3),
+                         "P_vs_90deg": round(Pp / P90, 3), "eta": round(eta, 3),
                          "band_fraction": round(fl[band].sum() / fl.sum(), 3),
                          "dlnRpow_dlnk": round(sens, 2), "dlnRpow_dlnn": round(dens, 3),
-                         "phase_tol_deg": round(tol, 1), "exch90_over_P90": round(w * M12 * k / P90, 2)})
+                         "X12_ohm": round(X12, 2), "phase_tol_deg": round(tol, 1),
+                         "exch90_over_P90": round(x_mut * k / P90, 2),
+                         "I1_A_at_300W": round(I1_300, 1), "I2_A_at_300W": round(k * I1_300, 1)})
     for r in rows:
         print(r)
     _write("presentation1_phase.csv", rows)
@@ -155,6 +166,9 @@ def r_range() -> None:
     for p in (5, 10, 15, 20, 30):
         lo, hi = np.exp(_out(300.0, 0.02, p, prm)[1]), np.exp(_out(300.0, 0.98, p, prm)[1])
         row = {"p_mTorr": p, "R_min": round(lo, 2), "R_max": round(hi, 2)}
+        # 코일 선택도를 넣은 하한: 중앙 몫이 X_SEL 아래로 내려가지 못한다 (2026-11-05 검토로 추가)
+        for xs_ in X_SEL:
+            row[f"R_min_x{xs_}"] = round(float(np.exp(_out(300.0, xs_, p, prm)[1])), 2)
         xs = {}
         for Rt in (0.8, 1.0, 1.2):
             try:
