@@ -194,6 +194,116 @@ def link(s, x, y, w, text, size=12):
     """앞뒤 식을 잇는 한 줄 (← 식 k / → 식 k)."""
     return tb(s, x, y, w, 0.3, [text], size=size, color=C['MUTED'], anchor='m')
 
+
+# ---------------------------------------------------------------- v5: 학회 발표 스타일
+# 각진 모서리, 무채색 바탕, 한 가지 강조색(양식 제목색), booktabs식 표, 텍스트 번호, 밑줄형 결론 줄
+def _is_dark(hexcol):
+    if not hexcol or len(hexcol) != 6:
+        return False
+    r_, g_, b_ = (int(hexcol[i:i + 2], 16) / 255 for i in (0, 2, 4))
+    return 0.299 * r_ + 0.587 * g_ + 0.114 * b_ < 0.6
+
+C.update(PANEL='F5F6F8', INDIGO_L='F2F3F7', NAVY_L='EEF2F7', BLUE_L='EEF3FB', ORANGE_L='FDF2EB',
+         AMBER_L='FBF6EA', GRAY_L='EEF0F3', TARGET='E2E7EF', LINE='D3D8E0')
+for _k in list(SEC):
+    SEC[_k] = C['MUTED']
+KIND_FILL.update({k: 'FFFFFF' for k in KIND_FILL})
+KIND_COL.update({'g': C['DARK'], 'w': C['INDIGO']})
+
+_box0 = box
+def box(slide, x, y, w, h, fill=None, line=None, lw=1.0, radius=0.08, shape=None, **kw):
+    """모서리는 모두 각지게."""
+    if shape is None or shape == MSO_SHAPE.ROUNDED_RECTANGLE:
+        shape, radius = None, None
+    return _box0(slide, x, y, w, h, fill=fill, line=line, lw=lw, radius=radius, shape=shape, **kw)
+
+def panel(s, x, y, w, h, head, body, kind='g', size=13, head_size=13, after=3, fill=None, line=None):
+    """흰 바탕 + 얇은 테두리 + 위쪽 색 선(블록)."""
+    hc = KIND_COL[kind]
+    paras = [dict(t=R(head), bold=True, color=hc, size=head_size, after=4)] if head else []
+    for b in body:
+        d = b if isinstance(b, dict) else {'t': b}
+        d = dict(d); d['t'] = R(d['t'])
+        paras.append(d)
+    shp = box(s, x, y, w, h, fill='FFFFFF', line=C['LINE'], lw=0.75, paras=paras, size=size, margin=0.13,
+              space_after=after)
+    seg(s, x, y, x + w, y, color=hc, w=2.25, name='블록 머리선')
+    return shp
+
+def chip(s, x, y, w, h, text, fill, color='FFFFFF', size=12, bold=True, radius=0.06):
+    """채운 알약 대신 테두리 태그."""
+    if _is_dark(fill) and color == 'FFFFFF':
+        return _box0(s, x, y, w, h, fill='FFFFFF', line=fill, lw=1.0, radius=None, paras=[R(text)], size=size,
+                     color=fill, bold=bold, align='c', anchor='m', margin=0.03)
+    return _box0(s, x, y, w, h, fill=fill, radius=None, paras=[R(text)], size=size, color=color, bold=bold,
+                 align='c', anchor='m', margin=0.03)
+
+_circle0 = circle
+def circle(slide, cx, cy, d, fill=None, line=None, lw=1.0, paras=None, size=13, color=None, bold=True, name=None):
+    """숫자 원은 굵은 숫자로만."""
+    if paras and fill and _is_dark(fill):
+        return tb(slide, cx - d / 2 - 0.12, cy - d / 2, d + 0.24, d, paras, size=size + 3, bold=True, color=fill,
+                  align='c', anchor='m')
+    return _circle0(slide, cx, cy, d, fill=fill, line=line, lw=lw, paras=paras, size=size, color=color, bold=bold, name=name)
+
+_table0 = table
+def table(slide, x, y, col_w, rows, size=12, header=True, **kw):
+    """booktabs식: 머리 채움 없음, 위·아래 굵은 선, 가운데 얇은 선."""
+    fills = dict(kw.pop('fills', None) or {})
+    colors = dict(kw.pop('colors', None) or {})
+    rows2 = []
+    for i, row in enumerate(rows):
+        r2 = []
+        for v in row:
+            if header and i == 0 and isinstance(v, dict) and 'paras' in v:
+                v = dict(v, paras=[dict(q, color=C['TEXT']) if isinstance(q, dict) else q for q in v['paras']])
+            r2.append(v)
+        rows2.append(r2)
+    for key in list(fills):
+        if header and key[0] == 0:
+            fills.pop(key); continue
+        if _is_dark(fills[key]):
+            fills[key] = 'E6ECF4'
+            if colors.get(key) == 'FFFFFF':
+                colors[key] = C['NAVY']
+    kw['header_fill'] = 'FFFFFF'; kw['header_color'] = C['TEXT']
+    gf = _table0(slide, x, y, col_w, rows2, size=size, header=header, fills=fills, colors=colors, **kw)
+    tbl = gf.table
+    nr, nc = len(tbl.rows), len(tbl.columns)
+    for i in range(nr):
+        for j in range(nc):
+            T = (C['TEXT'], 1.5) if i == 0 else None
+            if header and i == 0:
+                B = (C['TEXT'], 0.75)
+            elif i == nr - 1:
+                B = (C['TEXT'], 1.5)
+            else:
+                B = (C['LINE'], 0.5)
+            cell_borders(tbl.cell(i, j), L=None, R=None, T=T, B=B)
+    return gf
+
+def msg(s, text, kind='i'):
+    """결론 한 줄: 채운 상자·화살표 없이 위쪽 선 + 굵은 글씨."""
+    seg(s, 0.5, TAKE_Y, 9.5, TAKE_Y, color=C['INDIGO'], w=1.0, name='메시지 구분선')
+    return tb(s, 0.5, TAKE_Y + 0.05, 9.0, TAKE_H - 0.05, [R(text)], size=13.5, bold=True, color=C['INDIGO'],
+              anchor='m', name='핵심 메시지')
+
+def tracker(s, active):
+    """공식 사슬 위치: 원 대신 글자."""
+    nums = '  '.join(f'[[i:{i}]]' if i == active else str(i) for i in range(1, 8))
+    tb(s, 5.6, 0.93, 3.9, 0.28, [f'공식 사슬   {nums}'], size=11, color='A3AAB8', align='r', anchor='m', name='공식 사슬 위치')
+
+def fchip(s, x, y, n, w=0.6):
+    """식 번호: 괄호 숫자."""
+    return tb(s, x - 0.04, y - 0.02, w + 0.1, 0.34, [f'({n})'], size=12.5, color=C['MUTED'], anchor='m', name='식 번호')
+
+
+def block(s, x, y, w, h, col=None):
+    """머리선이 있는 흰 블록 (panel과 같은 모양, 내용은 따로 배치)."""
+    shp = box(s, x, y, w, h, fill='FFFFFF', line=C['LINE'], lw=0.75)
+    seg(s, x, y, x + w, y, color=col or C['INDIGO'], w=2.25, name='블록 머리선')
+    return shp
+
 # =================================================================== 1 cover
 s = prs.slides.add_slide(LAY_TITLE)
 built['cover'] = s
@@ -234,7 +344,7 @@ panel(s, 0.5, 1.42, 5.0, 1.6, '과제 (IC-PBL 주제안 3번)', [
     dict(t='하나의 챔버에서 중앙부와 가장자리의 플라즈마 밀도를 독립적으로 조절하는 소스를 설계한다', bullet=True),
     dict(t='배경: 코일 하나의 전력을 바꾸면 여러 위치의 밀도가 함께 변한다', bullet=True, color=C['DARK'])],
     kind='i', size=13, after=5)
-box(s, 5.7, 1.42, 3.8, 1.6, fill=C['PANEL'], radius=0.08)
+block(s, 5.7, 1.42, 3.8, 1.6)
 tb(s, 5.85, 1.5, 3.5, 0.3, ['제어 목표'], size=12.5, bold=True, color=C['INDIGO'])
 eq(s, 'eq_R', 5.95, 1.88, pt=19)
 rows = [['검토 사항', '질문 요지', '필요한 이론 (쪽)'],
@@ -296,7 +406,7 @@ for lv, name, mean, crit, col, light, tag in cards:
     w = 2.88
     box(s, x, Y0, w, 3.05, fill=light, line=col if tag else None, lw=1.5, radius=0.1)
     if tag:
-        chip(s, x + 0.1, Y0 + 0.1, 0.95, 0.3, tag, col, size=12, radius=0.05)
+        chip(s, x + 0.1, Y0 + 0.1, 0.85, 0.3, tag, col, size=12, radius=0.05)
     mx, my, cs = x + w / 2 - 0.42, Y0 + 0.17, 0.38
     shades = {'L0': [[col, col], ['B8BECB', 'B8BECB']], 'L1': [[col, '8FA9C9'], ['8FA9C9', col]], 'L2': [[col, None], [None, col]]}[lv]
     for i in range(2):
@@ -324,7 +434,8 @@ w, gap = 1.56, 0.3
 for i, (nm, fn, ftxt, sub, leaks, k, tag) in enumerate(stages):
     x = 0.5 + i * (w + gap)
     col = {'n': C['NAVY'], 'a': C['AMBER'], 'g': C['GRAY'], 'i': C['INDIGO']}[k]
-    box(s, x, 1.45, w, 1.7, fill='FFFFFF', line=col, lw=2, radius=0.08)
+    box(s, x, 1.45, w, 1.7, fill='FFFFFF', line=C['LINE'], lw=1, radius=0.08)
+    seg(s, x, 1.45, x + w, 1.45, color=col, w=2.25)
     tb(s, x, 1.52, w, 0.3, [nm], size=14, bold=True, color=col if k != 'g' else C['DARK'], align='c')
     chip(s, x + w / 2 - 0.38, 1.86, 0.76, 0.3, f'식 {fn}', C['INDIGO'], size=12, radius=0.05)
     tb(s, x + 0.04, 2.18, w - 0.08, 0.32, [ftxt], size=13, bold=True, align='c')
@@ -333,7 +444,7 @@ for i, (nm, fn, ftxt, sub, leaks, k, tag) in enumerate(stages):
         seg(s, x + w + 0.03, 2.3, x + w + gap - 0.03, 2.3, color=C['NAVY'], w=2, head=True)
     tb(s, x + 0.02, 3.62, w - 0.02, 1.4, [dict(t=l, size=12, after=4) for l in leaks], size=12, bullet=True, bullet_color=col)
     chip(s, x + 0.08, 5.15, w - 0.16, 0.34, tag, {'n': C['NAVY'], 'a': C['AMBER'], 'g': C['GRAY'], 'i': C['INDIGO']}[k], size=12, radius=0.05)
-tb(s, 0.5, 3.25, 9.0, 0.3, ['▼ 단계마다 한 영역의 조작이 다른 영역으로 새는 경로'], size=12, bold=True, color=C['MUTED'])
+tb(s, 0.5, 3.25, 9.0, 0.3, ['단계별 누설 경로: 한 영역의 조작이 다른 영역으로 새는 길'], size=12, bold=True, color=C['MUTED'])
 msg(s, '결합이 없다면 R = 전력비 × 손실 비대칭(식 3–5). 실제로는 식 1, 2, 6이 이를 흐린다')
 notes(s, '검토 사항 2, 한 영역을 바꿀 때 다른 영역도 변하는 원인을 공식 사슬로 정리했다. 코일 전류는 회로·장 단계(식 1)에서 영역 흡수 전력이 되고, 가열 단계(식 2)에서 실제 이온화 위치가 정해지고, 생성·손실 균형(식 3–5)에서 영역 밀도가 되고, 확산(식 6)을 거쳐 측정 위치의 밀도비가 된다. 마지막 식 7이 이 사슬 전체를 응답 행렬로 요약한다.\n'
          '단계마다 한 영역의 조작이 다른 영역으로 새는 경로가 있다. 남색은 구동부 설계가 정하는 결합, 호박색은 압력과 형상이 정하는 결합이다. 측벽 손실 비대칭은 피할 수는 없지만 총 전력으로 보상할 수 있다. E–H 전이 같은 비선형·이력은 모든 단계에 걸친다.\n'
@@ -342,7 +453,7 @@ notes(s, '검토 사항 2, 한 영역을 바꿀 때 다른 영역도 변하는 �
 # =================================================================== eh
 s = new('eh', f'{K2} · 유도 결합의 기초', '유도 결합의 기초: 표피 깊이와 E–H 모드', 'S2')
 tracker(s, 0)
-chip(s, 0.5, 1.55, 0.6, 0.3, '기초', C['INDIGO'], size=12, radius=0.05)
+fchip(s, 0.5, 1.55, '기초')
 eq(s, 'eq_skin', 1.2, 1.36, pt=12.5)
 tb(s, 4.2, 1.4, 5.3, 0.75, ['n_{e} = 3×10^{10}–10^{11} cm^{−3} → δ_{p} ≈ 1.7–3.1 cm (계산)',
                             '전력은 창 아래 이 얇은 층에서 흡수 → 가열 위치는 코일 반지름이 정한다 (식 1)'],
@@ -358,7 +469,7 @@ box(s, 5.35, 2.3, 4.15, 1.62, fill=C['NAVY_L'], line=C['NAVY'], radius=0.08, par
 seg(s, 4.7, 3.11, 5.3, 3.11, color=C['NAVY'], w=2, head=True)
 tb(s, 4.6, 2.7, 0.8, 0.36, ['전력 ↑'], size=12, color=C['MUTED'], align='c', anchor='m')
 tb(s, 4.6, 3.18, 0.8, 0.36, ['(이력)'], size=12, color=C['MUTED'], align='c', anchor='m')
-box(s, 0.5, 4.1, 9.0, 1.38, fill='FFFFFF', line='C9CED8', radius=0.08)
+block(s, 0.5, 4.1, 9.0, 1.38)
 tb(s, 0.65, 4.17, 8.7, 0.3, ['동작점은 흡수 전력과 손실 전력이 같아지는 밀도다'], size=12.5, bold=True, color=C['INDIGO'])
 eq(s, 'eq_pabs', 0.75, 4.55, pt=13)
 tb(s, 0.65, 5.0, 8.7, 0.6, ['R_{p}: 코일이 보는 플라즈마 저항. 흡수 곡선과 손실 직선(식 4)의 교점이 여럿이면 E–H 전이에 이력이 생긴다'],
@@ -680,14 +791,11 @@ x = 0.5
 for head, body, k in cards:
     panel(s, x, 2.42, 2.9, 1.85, head, [dict(t=b_, bullet=True) for b_ in body], kind=k, size=12.5, after=4)
     x += 3.05
-stats = [('약 350 V', '공진 코일 전압 (5 A, 계산)', C['NAVY']),
-         ('ΔC + ΔP', 'R을 바꾸며 n̄를 지키려면 C와 전력을 함께 (+14.8 pF, +3.5%)', C['NAVY']),
-         ('L1', '커패시터 하나가 n̄와 R을 함께 움직인다', C['AMBER'])]
-x = 0.5
-for big, small, col in stats:
-    box(s, x, 4.42, 2.9, 1.3, fill=C['PANEL'], radius=0.08, paras=[
-        dict(t=big, size=22, bold=True, color=col, after=2), dict(t=small, size=12)], margin=0.13, anchor='m')
-    x += 3.05
+table(s, 0.5, 4.45, [2.6, 2.6, 3.8], [['항목', '값 (0D 모델 계산)', '의미'],
+                                       ['공진 코일 전압 (5 A)', '약 350 V', '코일·커패시터에 높은 전압이 걸린다'],
+                                       ['R을 바꾸며 n̄ 유지', 'ΔC +14.8 pF, ΔP +3.5%', 'C와 전력을 함께 조정해야 한다'],
+                                       ['독립성 판정', 'L1', '커패시터 하나가 n̄와 R을 함께 움직인다']],
+      size=12, row_h=0.32, first_col_bold=True, bold_cells={(1, 1), (2, 1), (3, 1)}, colors={(3, 1): C['AMBER']})
 msg(s, 'LC 공진은 R 범위를 넓히지만, 분배가 밀도에 끌려 독립성은 L1에 머문다')
 note(s, 'ΔC, ΔP, 코일 전압은 0D 모델 계산. 모델이 공진 상태를 재현하지 못하므로 경향으로만 읽는다')
 notes(s, 'LC 공진은 주제안이 제시한 조절 수단 중 하나다. 바깥 코일을 전원 없이 가변 커패시터로 닫으면, 식 1의 결합 회로에서 바깥 코일 전류는 이 식으로 정해진다. 분모의 리액턴스 합이 0에 가까워지는 공진 근처에서 바깥 전류가 커지고, 그만큼 바깥 쪽 가열이 늘어 분포가 가장자리로 옮겨 간다. 우리 설계 형상의 바깥 코일이면 빈 챔버 기준 약 160 pF에서 공진한다.\n'
@@ -783,21 +891,22 @@ ch.value_axis.crosses = XL_AXIS_CROSSES.MINIMUM
 axis_title(ch.category_axis, '위상차 φ (°)', size=12); axis_title(ch.value_axis, '교환 전력 (90°의 값 = 1)', size=12)
 plot_layout(ch, *lay)
 tb(s, 0.6, 5.42, 5.5, 0.3, ['띠: 교환 전력 ≤ 흡수의 10%인 위상 (보수적 값)'], size=12, color=C['MUTED'])
-stats = [('0.2–0.7배', 'φ = 90°의 교환 전력 ÷ 흡수 전력 → 연속 손잡이로 쓰기엔 크다', C['INDIGO']),
-         ('±19–38°', '0°의 위상 허용 오차', C['NAVY']),
-         ('±4–12°', '180°의 위상 허용 오차 (전류가 커서 좁다)', C['AMBER'])]
-y = 2.15
-for big, small, col in stats:
-    box(s, 6.3, y, 3.2, 1.1, fill=C['PANEL'], radius=0.08, paras=[
-        dict(t=big, size=24, bold=True, color=col, after=2), dict(t=small, size=12.5)], margin=0.14, anchor='m')
-    y += 1.2
+table(s, 6.3, 2.2, [2.15, 1.05], [['항목', '값 (계산)'],
+                                    ['90°의 교환 전력 / 흡수 전력', '0.2–0.7'],
+                                    ['0°의 위상 허용 오차', '±19–38°'],
+                                    ['180°의 위상 허용 오차', '±4–12°']],
+      size=12.5, row_h=0.46, col_align=['l', 'c'], bold_cells={(1, 1), (2, 1), (3, 1)},
+      colors={(2, 1): C['NAVY'], (3, 1): C['AMBER']})
+tb(s, 6.3, 4.2, 3.2, 1.2, [dict(t='교환 전력이 커서 위상을 연속 손잡이로 쓰기 어렵다', bullet=True, after=4),
+                           dict(t='허용 오차: 교환 ≤ 흡수의 10%인 위상 폭. 180°는 같은 전력에 전류가 커서 좁다', bullet=True)],
+   size=12, color=C['DARK'])
 msg(s, '같은 주파수의 두 전원은 sin φ만큼 전력을 주고받는다 → 위상은 0°나 180°에 고정한다')
 note(s, 'ωM_{12} = 7.8 Ω, X′_{12} ≈ −4 ~ −6 Ω. 단일 턴, 균일 반공간, 밀도 고정 3×10^{10}–10^{11} cm^{−3} (계산)')
 notes(s, '위상·진폭 조절의 원리다. 진폭, 즉 두 코일의 전류비 k는 분배를 정하고, 위상은 두 전원 사이의 전력 교환을 정한다. 식 1c에 따르면 같은 주파수의 두 전원은 상호 인덕턴스를 통해 서로 전력을 밀어 넣고, 그 크기는 sin φ에 비례한다. 플라즈마 상호 리액턴스가 일부 상쇄해도 90°에서 흡수 전력의 0.2–0.7배라, 위상을 연속 손잡이로 쓰기에는 크다.\n그래서 해결 방안은 위상을 교환 전력이 사라지는 0°나 180° 근처에 고정하는 것이다. 교환 전력을 흡수의 10% 안으로 묶으려면 0°에서는 ±19–38°, 180°에서는 ±4–12°의 여유가 있다. 180°는 같은 전력에 코일 전류가 커서 여유가 좁다. 0°와 180°의 자세한 비교는 백업에 두었고, 2차 발표에서 같은 기준으로 다시 비교한다.')
 
 # =================================================================== field
 s = new('field', f'{K3} · 자기장·페라이트', '자기장·페라이트: 수송과 결합을 바꾸는 보조 수단', 'S3')
-box(s, 0.5, 1.42, 4.4, 4.33, fill=C['NAVY_L'], radius=0.08)
+block(s, 0.5, 1.42, 4.4, 4.33, C['NAVY'])
 tb(s, 0.65, 1.5, 4.1, 0.3, ['약한 축 방향 정자기장'], size=13.5, bold=True, color=C['NAVY'])
 eq(s, 'eq_dperp', 0.65, 1.9, pt=11)
 tb(s, 0.65, 2.55, 4.15, 3.15, [
@@ -854,14 +963,14 @@ for i, (col, txt) in enumerate([(C['BLUE'], '중앙 5점: 0, 25 mm'), (C['GRAY']
     circle(s, 0.72, yy + 0.14, 0.13, fill=col)
     tb(s, 0.88, yy, 2.8, 0.28, [txt], size=12, anchor='m')
 tb(s, 0.5, 5.2, 3.2, 0.5, ['ψ = +½ (중앙), −½ (가장자리)', '75 mm 4점은 모양 확인용'], size=12, color=C['MUTED'], anchor='m', space_after=0)
-box(s, 3.75, 1.42, 5.75, 2.55, fill=C['NAVY_L'], radius=0.08)
+block(s, 3.75, 1.42, 5.75, 2.55, C['NAVY'])
 tb(s, 3.9, 1.5, 5.5, 0.3, ['부유 고조파 탐침(FHP)의 원리'], size=12.5, bold=True, color=C['NAVY'])
 tb(s, 3.9, 1.86, 5.5, 2.05, [
     dict(t='부유 탐침에 작은 사인파 v_{0}를 걸면 시스의 비선형성으로 고조파 전류가 생긴다', after=4),
     dict(t='T_{e} = (v_{0}/4)·I_{ω}/I_{2ω} (1차·2차 고조파 전류비)', after=4),
     dict(t='이온 포화 전류 I_{is} = 0.61 e n u_{B} A_{p} → 선속 n u_{B}', after=4),
     dict(t='부유 상태라 교란이 작고, 웨이퍼에 여러 개를 배열할 수 있다')], size=12, bullet=True, bullet_color=C['NAVY'])
-box(s, 3.75, 4.12, 5.75, 1.63, fill=C['PANEL'], radius=0.08)
+block(s, 3.75, 4.12, 5.75, 1.63)
 tb(s, 3.9, 4.18, 5.5, 0.3, ['점별 로그 변화를 둘로 나눈다'], size=12.5, bold=True, color=C['INDIGO'])
 eq(s, 'eq_split', 3.95, 4.55, pt=15)
 tb(s, 3.9, 4.98, 5.5, 0.75, [
@@ -1128,7 +1237,7 @@ notes(s, '이 구조를 고른 이유를 공식으로 정리하면 세 가지다
 # =================================================================== bk_drive
 s = new('bk_drive', '백업 ¤bk_drive¤ · 구동 방식 비교 (질문 2-1, 2-4)', '세 구동 방식 비교: B만 분배를 설정값으로 정한다', '백업')
 hdr = ['기준', dict(paras=[dict(t='A 수동 공진', bold=True, size=13, color='FFFFFF', align='c', after=0), dict(t='전원 1 + 가변 C', size=12, color='FFFFFF', align='c')]),
-       dict(paras=[dict(t='B 독립 전원 2대 ✓', bold=True, size=13, color='FFFFFF', align='c', after=0), dict(t='위상 고정', size=12, color='FFFFFF', align='c')]),
+       dict(paras=[dict(t='B 독립 전원 2대', bold=True, size=13, color='FFFFFF', align='c', after=0), dict(t='위상 고정', size=12, color='FFFFFF', align='c')]),
        dict(paras=[dict(t='C 자기장 보조', bold=True, size=13, color='FFFFFF', align='c', after=0), dict(t='B에 추가', size=12, color='FFFFFF', align='c')])]
 rows = [hdr,
         ['R 범위', '0.39까지 (50 mTorr 측정), 연속 조정은 미확인', '0.8–1.2 (20–30 mTorr, 모델)', '저압까지 넓힘 (추정)'],
