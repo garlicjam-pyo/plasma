@@ -110,5 +110,17 @@
  {
   "name": "eq_ferr",
   "src": "E \\propto \\omega\\,\\mu\\,I"
+ },
+ {
+  "name": "eq_skin",
+  "src": "\\delta_p = \\frac{c}{\\omega_{pe}},\\qquad \\omega_{pe} = \\sqrt{\\frac{e^2 n_e}{\\varepsilon_0 m}}"
+ },
+ {
+  "name": "eq_pabs",
+  "src": "P_{\\mathrm{abs}} = \\tfrac{1}{2} R_p(n_e)\\,|I_{\\mathrm{coil}}|^2 \\;=\\; P_{\\mathrm{loss}} = e\\,n_e u_B\\,\\varepsilon_T A_{\\mathrm{eff}}"
+ },
+ {
+  "name": "eq_dperp",
+  "src": "D_\\perp = \\frac{D}{1 + (\\omega_{ce}/\\nu_m)^2},\\qquad \\lambda_{\\varepsilon\\perp} \\approx \\frac{\\lambda_\\varepsilon}{\\sqrt{1 + (\\omega_{ce}/\\nu_m)^2}}"
  }
 ]
