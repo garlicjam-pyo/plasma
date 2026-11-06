@@ -46,5 +46,69 @@
  {
   "name": "eq_bal2",
   "src": "\\ln R = \\ln\\frac{P_c}{P_e} + (\\text{손실 비대칭 항})"
+ },
+ {
+  "name": "eq_pb",
+  "src": "n_g\\,K_{iz}(T_e) = \\frac{u_B(T_e)}{d_{\\mathrm{eff}}},\\qquad u_B = \\sqrt{\\frac{e\\,T_e}{M}}"
+ },
+ {
+  "name": "eq_deff",
+  "src": "d_{\\mathrm{eff}} = \\frac{R\\,L}{2\\,(R\\,h_L + L\\,h_R)}"
+ },
+ {
+  "name": "eq_pw",
+  "src": "n_k = \\frac{P_k}{e\\,u_B\\,\\varepsilon_T\\,A_{\\mathrm{eff},k}},\\qquad \\varepsilon_T = \\varepsilon_c + 2T_e + 5.2\\,T_e"
+ },
+ {
+  "name": "eq_lnR",
+  "src": "\\ln R = \\underbrace{\\ln\\frac{P_c}{P_e}}_{\\text{전력 분배}} + \\underbrace{\\ln\\frac{(u_B\\,\\varepsilon_T\\,A_{\\mathrm{eff}})_e}{(u_B\\,\\varepsilon_T\\,A_{\\mathrm{eff}})_c}}_{\\text{손실 비대칭}}"
+ },
+ {
+  "name": "eq_Aeff",
+  "src": "A_{\\mathrm{eff},c} = 2\\pi r_b^2\\,h_L,\\qquad A_{\\mathrm{eff},e} = 2\\pi (R^2 - r_b^2)\\,h_L + 2\\pi R L\\,h_R"
+ },
+ {
+  "name": "eq_h",
+  "src": "h_L \\approx 0.86\\left(3 + \\frac{L}{2\\lambda_i}\\right)^{-1/2},\\qquad h_R \\approx 0.80\\left(4 + \\frac{R}{\\lambda_i}\\right)^{-1/2}"
+ },
+ {
+  "name": "eq_lamdef",
+  "src": "\\lambda_\\varepsilon = \\sqrt{\\frac{\\lambda_m\\,\\lambda^*}{3}},\\qquad \\lambda_m = \\frac{1}{n_g\\,\\sigma_m} \\propto \\frac{1}{p}"
+ },
+ {
+  "name": "eq_wg",
+  "src": "w = e^{-\\Delta/\\lambda_\\varepsilon},\\qquad g_R = 1 - w"
+ },
+ {
+  "name": "eq_diff",
+  "src": "\\ell = \\frac{L}{\\pi},\\qquad \\text{영역 간 누설} \\approx e^{-\\pi\\Delta/L}"
+ },
+ {
+  "name": "eq_Z",
+  "src": "\\begin{bmatrix} V_1 \\\\ V_2 \\end{bmatrix} = \\begin{bmatrix} Z_{11} & Z_{12} \\\\ Z_{12} & Z_{22} \\end{bmatrix}\\begin{bmatrix} I_1 \\\\ I_2 \\end{bmatrix},\\qquad Z_{12} = R'_{12} + j\\,(\\omega M_{12} + X'_{12})"
+ },
+ {
+  "name": "eq_Pp",
+  "src": "P_{\\mathrm{plasma}} = |I_1|^2\\left[R'_{11} + k^2 R'_{22} + 2k\\,R'_{12}\\cos\\varphi\\right],\\qquad k\\,e^{j\\varphi} = \\frac{I_2}{I_1}"
+ },
+ {
+  "name": "eq_res",
+  "src": "I_2 = -\\,\\frac{j\\omega M_{12} + \\Delta Z_{12}}{R_2 + j\\omega L_2 + \\dfrac{1}{j\\omega C} + \\Delta Z_{22}}\\;I_1"
+ },
+ {
+  "name": "eq_VI",
+  "src": "P = |V||I|\\cos\\theta_Z\\ \\Rightarrow\\ \\frac{\\Delta P}{P} = \\tan\\theta_Z\\,\\Delta\\theta"
+ },
+ {
+  "name": "eq_wc",
+  "src": "\\omega_c \\le \\frac{\\pi}{6\\,T_d}"
+ },
+ {
+  "name": "eq_fhp",
+  "src": "T_e = \\frac{v_0}{4}\\,\\frac{I_\\omega}{I_{2\\omega}},\\qquad I_{is} = 0.61\\,e\\,n\\,u_B\\,A_p"
+ },
+ {
+  "name": "eq_ferr",
+  "src": "E \\propto \\omega\\,\\mu\\,I"
  }
 ]
