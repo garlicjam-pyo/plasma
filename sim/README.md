@@ -15,6 +15,7 @@ python sim/presentation1_estimates.py range        # 압력별 R 범위 (코일 
 python sim/two_source_phase.py                     # 두 전원 교환 전력·위상 허용 오차·정합 리액턴스 (phase 와 같은 ΔZ·동작점)
 python sim/jacobian_fit.py                         # FHP 섭동 실험 → a0/a1 회귀 → J, 누설, κ, RGA (합성 데이터 시연)
 python sim/presentation1_figures.py                # 1차 발표 그림 3종 (R 범위, 사슬, 구성도) → figures/*.png
+python sim/theory_note_check.py                    # 팀 이론 정리 문서(11-09)의 압력별 수치 재현, 자화 수송 표(3 G 포함), 교차 성분별 거리
 ```
 
 ## 로드맵
