@@ -16,6 +16,7 @@ python sim/two_source_phase.py                     # 두 전원 교환 전력·�
 python sim/jacobian_fit.py                         # FHP 섭동 실험 → a0/a1 회귀 → J, 누설, κ, RGA (합성 데이터 시연)
 python sim/presentation1_figures.py                # 1차 발표 그림 3종 (R 범위, 사슬, 구성도) → figures/*.png
 python sim/theory_note_check.py                    # 팀 이론 정리 문서(11-09)의 압력별 수치 재현, 자화 수송 표(3 G 포함), 교차 성분별 거리
+python sim/k_operating_point.py 20                 # 운전점(중앙 몫 x)에 따른 J 변화, R = 1의 J로 한 선형 예측 오차, 고정 J 반복과 도달 한계
 ```
 
 ## 로드맵
