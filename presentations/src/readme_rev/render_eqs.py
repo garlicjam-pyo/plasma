@@ -29,26 +29,39 @@ for k, tex in EQ.items():
     fig.savefig(f"{k}.png", dpi=534, bbox_inches="tight", pad_inches=0.02, transparent=True)
     plt.close(fig)
 
-# 색으로 항을 구분한 흡수 옴전력 식. 항별 가로 위치(0–1)를 함께 기록한다.
-parts = [(r"$p_e = \frac{1}{2}\,\mathrm{Re}(\sigma_p)\,I_0^2\;$", INK, None), (r"$[\,$", INK, None),
-         (r"$|\tilde{E}_\mathrm{in}|^2$", BLUE, "in"), (r"$\;+\;$", INK, None),
-         (r"$k^2|\tilde{E}_\mathrm{out}|^2$", ORANGE, "out"), (r"$\;+\;$", INK, None),
-         (r"$2k\,|\tilde{E}_\mathrm{in}||\tilde{E}_\mathrm{out}|\cos(\phi+\psi)$", NAVY, "x"), (r"$\,]$", INK, None)]
-fig = plt.figure(figsize=(14, 1.2), dpi=534)
-r = fig.canvas.get_renderer()
-wpx = fig.get_size_inches()[0] * fig.dpi
-x, spans = 0.01, []
-for tex, col, key in parts:
-    big = tex.strip("$").strip("\\, ") in ("[", "]")
-    t = fig.text(x, 0.4 - (0.06 if big else 0), tex, fontsize=27 if big else 20, color=col, va="baseline")
-    bb = t.get_window_extent(r)
-    spans.append((key, bb.x0, bb.x1))
-    x = bb.x1 / wpx + 0.002
-x0, x1 = spans[0][1], spans[-1][2]
-frac = {k: [(a - x0) / (x1 - x0), (b - x0) / (x1 - x0)] for k, a, b in spans if k}
-fig.savefig("n_pe3.png", dpi=534, bbox_inches="tight", pad_inches=0.02, transparent=True)
-plt.close(fig)
-json.dump(frac, open("pe3_spans.json", "w"))
+def colored(name, parts):
+    """색으로 항을 구분한 식. 항별 가로 위치(0–1)를 함께 돌려준다."""
+    fig = plt.figure(figsize=(14, 1.2), dpi=534)
+    r = fig.canvas.get_renderer()
+    wpx = fig.get_size_inches()[0] * fig.dpi
+    x, spans = 0.01, []
+    for tex, col, key in parts:
+        big = tex.strip("$").strip("\\, ") in ("[", "]")
+        t = fig.text(x, 0.4 - (0.06 if big else 0), tex, fontsize=27 if big else 20, color=col, va="baseline")
+        bb = t.get_window_extent(r)
+        spans.append((key, bb.x0, bb.x1))
+        x = bb.x1 / wpx + 0.002
+    x0, x1 = spans[0][1], spans[-1][2]
+    fig.savefig(f"{name}.png", dpi=534, bbox_inches="tight", pad_inches=0.02, transparent=True)
+    plt.close(fig)
+    return {k: [float((a - x0) / (x1 - x0)), float((b - x0) / (x1 - x0))] for k, a, b in spans if k}
+
+
+SPANS = {}
+# 7쪽: 흡수 옴전력 밀도의 세 항 (위치마다 다른 psi(r, z))
+SPANS["pe3"] = colored("n_pe3", [
+    (r"$p_e = \frac{1}{2}\,\mathrm{Re}(\sigma_p)\,I_0^2\;$", INK, None), (r"$[\,$", INK, None),
+    (r"$|\tilde{E}_\mathrm{in}|^2$", BLUE, "in"), (r"$\;+\;$", INK, None),
+    (r"$k^2|\tilde{E}_\mathrm{out}|^2$", ORANGE, "out"), (r"$\;+\;$", INK, None),
+    (r"$2k\,|\tilde{E}_\mathrm{in}||\tilde{E}_\mathrm{out}|\cos(\phi+\psi)$", NAVY, "x"), (r"$\,]$", INK, None)])
+# 5쪽: 부피 적분한 흡수 전력 (0D에서는 상수 계수 R', psi_0만 남는다)
+SPANS["pabs"] = colored("n_pabs3", [
+    (r"$P_\mathrm{abs} = \frac{1}{2}\,$", INK, None), (r"$I_0^{\,2}$", INK, "i0"), (r"$\;[\,$", INK, None),
+    (r"$R^{\prime}_\mathrm{in}$", BLUE, "in"), (r"$\;+\;$", INK, None),
+    (r"$k^2 R^{\prime}_\mathrm{out}$", ORANGE, "out"), (r"$\;+\;$", INK, None),
+    (r"$2k\,R^{\prime}_{x}\cos(\phi+\psi_0)$", NAVY, "x"), (r"$\,]$", INK, None)])
+json.dump(SPANS, open("spans.json", "w"))
+frac = SPANS
 
 
 def arrow(ax, p0, p1, col, lw=2.6):

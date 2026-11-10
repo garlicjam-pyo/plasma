@@ -179,7 +179,7 @@ import json
 for f in os.listdir(EQ):
     if f.endswith(".png") and (f.startswith("n_") or f.startswith("fig_")):
         shutil.copy(f"{EQ}/{f}", f"{U}/ppt/media/{'eq_' + f[2:] if f.startswith('n_') else f}")
-SPANS = json.load(open(f"{EQ}/pe3_spans.json"))
+SPANS = json.load(open(f"{EQ}/spans.json"))
 
 L, R, W = 457200, 8686800, 8229600   # 좌우 여백, 본문 폭
 TOP, BOT = 1335000, 5310000          # 본문 위·아래 끝
@@ -369,29 +369,43 @@ s.write(5)
 
 # ===================== 5. 0D에서 본 이중 코일 (slide6.xml) =====================
 s = Slide()
-s.frame("0D에서 본 이중 코일: 입력 셋, 흡수 전력 하나", "0D 모델  ·  이중 코일의 제어 입력",
+s.frame("0D에서 본 이중 코일: 입력 셋, 흡수 전력 하나", "0D 모델  ·  이중 코일의 제어 입력과 흡수 전력",
         "입력을 셋으로 늘려도 0D의 출력은 밀도 n_{0} 하나다.",
-        "P_{tot}에서 매처와 안테나의 손실을 뺀 나머지가 P_{abs}다: 정진욱 (2026) §2.4 p.135. 식 (2.70), (2.73). 전류 표기와 공통 위상: 부록 A4.")
-c5 = TOP + 330000
-chamber(s, c5, currents=True)
-px = 4663440
-pw, ph = s.eq("fig_phasor.png", px, TOP + 20000, emu_per_px=2500)
-s.box("페이저 설명", px, TOP + 20000 + ph + 10000, pw, 280000, [para("I_{out} = k e^{jφ} I_{in}", B1, INK, True, algn="ctr", aft=0)])
-kx = px + pw + 150000
+        "R′: 플라즈마 등가 저항(부피 적분 값) [유도]. 단일 코일: 교재 p.134 P_{abs} = I_{rf}^{2}R′_{p}. P_{tot} = P_{abs} + 매처·안테나 손실 (p.135).")
+# 위: 전류 페이저와 세 입력의 역할
+pw, ph = s.eq("fig_phasor.png", L + 100000, TOP, emu_per_px=2050)
+s.box("페이저 설명", L, TOP + ph + 10000, pw + 200000, 280000, [para("I_{out} = k e^{jφ} I_{in}", B1, INK, True, algn="ctr", aft=0)])
+kx = L + pw + 300000
 kw = R - kx
-kh = 500000
-for k, (sym, nm) in enumerate([("k", "전류 크기비"), ("φ", "전류 위상차"), ("P_{tot}", "총 공급 전력")]):
-    ky = TOP + 60000 + k * (kh + 90000)
-    s.box(f"입력 {k + 1} 기호", kx, ky, 560000, kh, [para(sym, 1500, "FFFFFF", True, algn="ctr", aft=0)], fill=NAVY, anchor="ctr")
-    s.box(f"입력 {k + 1}", kx + 560000, ky, kw - 560000, kh, [para(nm, B1, INK, True, aft=0)], line=LINE, inset=91440, anchor="ctr")
-s.box("자유도 세기", px, TOP + 20000 + ph + 330000, R - px, 300000, [
-    para("공통 위상을 빼면 독립 변수는 3개다.", S1, SUB, algn="ctr", aft=0)])
-fy5 = c5 + 1659636 + 230000
+kh = 460000
+for k, (sym, nm, role) in enumerate([
+        ("k", "전류 크기비", "바깥쪽 코일 항과 간섭항의 크기를 바꾼다"),
+        ("φ", "전류 위상차", "간섭항의 크기와 부호를 바꾼다"),
+        ("P_{tot}", "총 공급 전력", "전류 크기 I_{0}를 정한다")]):
+    ky = TOP + k * (kh + 70000)
+    s.box(f"입력 {k + 1} 기호", kx, ky, 620000, kh, [para(sym, 1600, "FFFFFF", True, algn="ctr", aft=0)], fill=NAVY, anchor="ctr")
+    s.box(f"입력 {k + 1}", kx + 620000, ky, kw - 620000, kh, None, line=LINE)
+    s.box(f"입력 {k + 1} 이름", kx + 620000 + 109728, ky, 1450000, kh, [para(nm, B1, INK, True, aft=0)], anchor="ctr")
+    s.box(f"입력 {k + 1} 역할", kx + 620000 + 1560000, ky, kw - 620000 - 1600000, kh, [para(role, B1, SUB, aft=0)], anchor="ctr")
+# 가운데: 세 입력이 흡수 전력이 되는 식
+hy5 = TOP + 3 * kh + 140000 + 120000
+s.box("식 제목", L, hy5, W, 290000, [para("세 입력이 흡수 전력 하나로 합쳐진다", T1, HEAD, True, aft=0)])
+ew, eh = s.eq("eq_pabs3.png", L, hy5 + 340000, emu_per_px=1750, max_w=W - 60000, center_w=W)
+ex = L + (W - ew) // 2
+ly = hy5 + 340000 + eh + 30000
+for key, lab, col in [("i0", "크기: P_{tot}이 정한다", SUB), ("in", "안쪽 코일", BLUE), ("out", "바깥쪽 코일", ORANGE), ("x", "두 코일의 간섭", NAVY)]:
+    a, b = SPANS["pabs"][key]
+    s.box(f"밑줄 {key}", ex + int(a * ew), ly, int((b - a) * ew), 27432, None, fill=col)
+    mid = ex + int((a + b) / 2 * ew)
+    if key == "i0":
+        s.box(f"항 {key}", ex + int(b * ew) - 2480000, ly + 40000, 2400000, 270000, [para(lab, B1, INK, True, algn="r", aft=0)])
+    else:
+        s.box(f"항 {key}", mid - 1000000, ly + 40000, 2000000, 270000,
+              [para(lab, B1, ORANGE_T if col == ORANGE else col, True, algn="ctr", aft=0)])
+# 아래: 0D 흐름
+fy5 = ly + 360000
 flow(s, fy5, "k,  φ,  P_{tot}", "이중 코일", [
-    para("0D 식에서 세 입력이 들어갈 자리는 P_{abs}뿐이다.", 1500, INK, True, aft=80),
-    para("같은 P_{abs}를 주는 (k, φ, P_{tot})는 같은 n_{0}를 준다. T_{e}는 달라지지 않는다.", B1, INK, aft=0)],
-     cap_x=L + 2300000, cap_w=W - 2300000)
-s.eq("eq_n0k.png", L + 60000, fy5 + 640000 + 140000, emu_per_px=1500)
+    para("0D 식에서 세 입력이 들어갈 자리는 P_{abs}뿐이다. 같은 P_{abs}면 n_{0}도 같고, T_{e}는 달라지지 않는다.", B1, INK, algn="ctr", aft=0)])
 s.pagenum()
 s.write(6)
 
@@ -456,7 +470,7 @@ ew, eh = s.eq("eq_pe3.png", L, hy + 340000, emu_per_px=1750, max_w=W - 60000, ce
 ex = L + (W - ew) // 2
 ly = hy + 340000 + eh + 30000
 for key, lab, col in [("in", "안쪽 코일", BLUE), ("out", "바깥쪽 코일", ORANGE), ("x", "간섭: 위치마다 다르다", NAVY)]:
-    a, b = SPANS[key]
+    a, b = SPANS["pe3"][key]
     s.box(f"밑줄 {key}", ex + int(a * ew), ly, int((b - a) * ew), 27432, None, fill=col)
     mid = ex + int((a + b) / 2 * ew)
     s.box(f"항 {key}", mid - 1300000, ly + 40000, 2600000, 270000,
