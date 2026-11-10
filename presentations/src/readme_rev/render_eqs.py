@@ -16,7 +16,9 @@ EQ = {
     "n_pelhs":  r"$p_e(r,z) \;=$",
     "n_i2":     r"$|I|^2$",
     "n_f":      r"$f(r,z)$",
-    # 교재 식 (2.73)
+    # 교재 식 (2.70), (2.73)
+    "n_te":     r"$\dfrac{K_{iz}(T_e)}{u_B(T_e)} = \dfrac{1}{n_g\, d_\mathrm{eff}}$",
+    "n_n0k":    r"$n_0 = \dfrac{P_\mathrm{abs}(k,\,\phi,\,P_\mathrm{tot})}{e\,u_B\,\varepsilon_T\,A_\mathrm{eff}}$",
     "n_n0":     r"$n_0 = \dfrac{P_\mathrm{abs}}{e\,u_B\,\varepsilon_T\,A_\mathrm{eff}}$",
     # 교재 식 (1.76)의 정상 상태와 기본 모드 (1.79)·(1.83)
     "n_diffmode": r"$-D_a \nabla^2 n = \nu_{iz}\, n \;\;\Longrightarrow\;\; n \propto J_0\!\left(\dfrac{\chi_{01}\, r}{R}\right)\cos\dfrac{\pi z}{L}$",

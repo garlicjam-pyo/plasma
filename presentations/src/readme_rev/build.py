@@ -292,7 +292,8 @@ s.box("밀도비 상자", rx, 2560000, rw, 960000, None, fill="EEF3FB")
 w, h = s.eq("eq_rho.png", rx + 230000, 2560000 + (960000 - 333 * 1500) // 2, emu_per_px=1500)
 s.box("밀도비 설명", rx + 230000 + w + 250000, 2560000, rw - w - 600000, 960000, [
     para("밀도비", T1, HEAD, True, aft=100),
-    para("중앙 평균 밀도 ÷ 가장자리 평균 밀도", S1, SUB, aft=0)], anchor="ctr")
+    para("중앙 평균 밀도 ÷ 가장자리 평균 밀도", S1, SUB, aft=60),
+    para("밀도의 공간 분포에서 정해지는 값", S1, INK, True, aft=0)], anchor="ctr")
 # 목표 두 가지
 gw = (rw - 137160) // 2
 for k, (nm, verb, cond, col) in enumerate([("평균 밀도  n̄_{w}", "유지", "Δn̄_{w} = 0", NAVY),
@@ -308,45 +309,73 @@ s.box("평균 설명", rx, 4880000, rw, 420000, [
 s.pagenum()
 s.write(4)
 
-# ===================== 4. 단일 코일 (slide5.xml) =====================
+
+def flow(s, y, inputs, model, caption_paras, cap_x=None, cap_w=None):
+    """0D 모델의 입력 → 흡수 전력 → 0D 균형 → 출력 도식. 네 상자 높이와 서식은 4·5쪽에서 같다."""
+    bh = 640000
+    ws = [2286000, 1554480, 1920240, 1371600]
+    g = (W - sum(ws)) // 3
+    xs = [L]
+    for wv in ws[:-1]:
+        xs.append(xs[-1] + wv + g)
+    s.box("입력", xs[0], y, ws[0], bh, [para("입력", S1, SUB, algn="ctr", aft=0), para(inputs, 1800, INK, True, algn="ctr", aft=0)],
+          line="8C93A3", anchor="ctr")
+    s.box("흡수 전력", xs[1], y, ws[1], bh, [para("흡수 전력", S1, "FFFFFF", algn="ctr", aft=0), para("P_{abs}", 1800, "FFFFFF", True, algn="ctr", aft=0)],
+          fill=NAVY, anchor="ctr")
+    s.box("0D 균형", xs[2], y, ws[2], bh, [para(model, S1, SUB, algn="ctr", aft=0), para("0D 균형", T1, HEAD, True, algn="ctr", aft=0)],
+          fill="EEF3FB", anchor="ctr")
+    s.box("출력", xs[3], y, ws[3], bh, [para("출력", S1, SUB, algn="ctr", aft=0), para("n_{0}", 1800, INK, True, algn="ctr", aft=0)],
+          line="8C93A3", anchor="ctr")
+    for k in range(3):
+        s.arrow(f"흐름 화살표 {k + 1}", xs[k] + ws[k] + 40000, y + bh // 2, g - 80000, color=INK, width=25400)
+    s.box("흐름 결론", cap_x or L, y + bh + 90000, cap_w or W, BOT - (y + bh + 90000), caption_paras)
+
+
+# ===================== 4. 0D에서 본 단일 코일 (slide5.xml) =====================
 s = Slide()
-s.frame("단일 코일 ICP: 입력은 전력 하나", "단일 코일  ·  유도 가열과 0D 균형 (교재 §2.3, §2.4)",
+s.frame("0D에서 본 단일 코일: 입력 하나, 출력 하나", "0D 모델  ·  입자 균형과 전력 균형 (교재 §2.4)",
         "단일 코일로는 평균 밀도를 유지한 채 밀도비를 바꿀 수 없다.",
-        "정진욱 (2026) 식 (2.31)–(2.32), (2.52), (2.70), (2.73). f(r, z) = ½Re(σ_{p})|Ẽ|², Ẽ: 단위 전류당 E_{θ} (전도도 고정).")
-chain(s, TOP, 560000, [("안테나 전류", "I(t)"), ("시변 자속", "dΦ/dt"), ("유도 전기장", "E_{θ}"),
-                       ("흡수 옴전력", "p_{e}"), ("이온화", "K_{iz}(T_{e})")], "가열 사슬")
-cy4, ch4 = TOP + 690000, 1760000
-s.card("가열 카드", L, cy4, CW, ch4, [para("가열 분포: 전류는 크기만 바꾼다", T1, HEAD, True)])
-ty4, th4 = cy4 + 520000, 1060000
-w, h = s.eq("eq_pelhs.png", L + 130000, ty4 + 150000, emu_per_px=1500)
-xa = L + 130000 + w + 90000
-wa, wb = 1000000, 1330000
-for nm, x, wt, img, hd, body, col in [("크기", xa, wa, "eq_i2.png", "크기", "전류가 정한다", BLUE),
-                                      ("모양", xa + wa + 300000, wb, "eq_f.png", "모양", "코일 구조가 정한다", HEAD)]:
-    s.box(f"{nm} 타일", x, ty4, wt, th4, None, fill="EEF3FB")
-    s.eq(img, x, ty4 + 120000, emu_per_px=1500, center_w=wt)
-    s.box(f"{nm} 설명", x, ty4 + 500000, wt, th4 - 520000, [
-        para(hd, B1, col, True, algn="ctr", aft=0), para(body, S1, INK, algn="ctr", aft=0)])
-s.box("곱하기", xa + wa, ty4, 300000, 550000, [para("×", 2000, INK, algn="ctr", aft=0)], anchor="ctr")
-s.card("0D 카드", X2, cy4, CW, ch4, [para("0D 균형: 밀도는 전력에 비례한다", T1, HEAD, True)])
-w, h = s.eq("eq_n0.png", X2 + 109728, cy4 + 500000, emu_per_px=1600, center_w=CW - 219456)
-s.box("0D 설명", X2 + 109728, cy4 + 500000 + h + 110000, CW - 219456, 520000, [
-    para("T_{e}는 압력과 용기 크기가 정한다.", B1, INK, algn="ctr", aft=50),
-    para("전력을 바꿔도 달라지지 않는다 (2.70).", S1, SUB, algn="ctr", aft=0)])
-io_strip(s, cy4 + ch4 + 150000, "P", "단일 코일 ICP",
-         "n̄_{w}를 정하면 P가 정해지고, 그 P에서 ρ도 정해진다.")
+        "정진욱 (2026) §2.4 pp.134–138 식 (2.66)–(2.73). ε_{T}: 전자–이온 한 쌍이 손실될 때 필요한 총에너지, u_{B}: 봄 속도, A_{eff}: 유효 면적.")
+ph4 = 2360000
+# 왼쪽: 0D 상자 도식
+s.box("0D 패널", L, TOP, 3566160, ph4, None, line=LINE)
+s.box("0D 강조선", L, TOP, 3566160, 45720, None, fill=HEAD)
+s.box("0D 제목", L + 109728, TOP + 90000, 3300000, 300000, [para("0D 모델: 챔버 전체를 값 하나씩으로", T1, HEAD, True, aft=0)])
+bx0, by0, bw0, bh0 = L + 960000, TOP + 720000, 1650000, 1050000
+s.shape("rect", "0D 챔버", bx0, by0, bw0, bh0, fill="DCE6F5", line="5F6779")
+s.box("0D 값", bx0, by0, bw0, bh0, [para("T_{e},  n_{0}", 2000, INK, True, algn="ctr", aft=0)], anchor="ctr")
+s.arrow("전력 입력", L + 150000, by0 + bh0 // 2, bx0 - L - 200000, color=INK, width=25400)
+s.box("전력 표기", L + 60000, by0 + bh0 // 2 - 340000, bx0 - L - 100000, 300000, [para("P_{abs}", 1500, INK, True, algn="ctr", aft=0)])
+s.arrow("벽 손실", bx0 + bw0 + 50000, by0 + bh0 // 2, L + 3566160 - (bx0 + bw0) - 200000, color=INK, width=25400)
+s.box("손실 표기", bx0 + bw0, by0 + bh0 // 2 - 340000, L + 3566160 - (bx0 + bw0) - 60000, 300000, [para("벽 손실", B1, INK, algn="ctr", aft=0)])
+s.box("0D 설명", L + 109728, by0 + bh0 + 130000, 3346704, 300000, [para("전자온도 하나, 밀도 하나. 위치(r, z)가 없다.", S1, SUB, algn="ctr", aft=0)])
+# 오른쪽: 두 균형식
+tx, tw_ = L + 3566160 + 182880, R - (L + 3566160 + 182880)
+th_ = (ph4 - 120000) // 2
+for k, (img, hd, l1, l2) in enumerate([
+        ("eq_te.png", "입자 균형", "T_{e}는 압력과 용기 크기가 정한다.", "전력과 무관하다."),
+        ("eq_n0.png", "전력 균형", "n_{0}는 흡수 전력에 비례한다.", None)]):
+    ty_ = TOP + k * (th_ + 120000)
+    s.box(f"균형 {k + 1}", tx, ty_, tw_, th_, None, fill="F4F6FA")
+    w, h = s.eq(img, tx + 150000, ty_ + (th_ - (385 if k == 0 else 349) * 1400) // 2, emu_per_px=1400)
+    ps = [para(hd, T1, HEAD, True, aft=80), para(l1, B1, INK, aft=40)]
+    if l2:
+        ps.append(para(l2, B1, ORANGE_T, True, aft=0))
+    s.box(f"균형 {k + 1} 설명", tx + 150000 + 1077 * 1400 + 200000, ty_, tw_ - 1077 * 1400 - 450000, th_, ps, anchor="ctr")
+flow(s, TOP + ph4 + 140000, "P", "단일 코일", [
+    para("n̄_{w}를 정하면 P가 정해진다. ρ를 따로 정할 입력이 남지 않는다.", 1500, INK, algn="ctr", aft=0)])
 s.pagenum()
 s.write(5)
 
-# ===================== 5. 이중 코일의 제어 입력 (slide6.xml) =====================
+# ===================== 5. 0D에서 본 이중 코일 (slide6.xml) =====================
 s = Slide()
-s.frame("이중 코일 ICP: 제어 입력은 셋", "이중 코일  ·  제어 입력과 출력",
-        "이중 코일의 제어 입력은 (k, φ, P_{tot}) 셋, 맞출 출력은 (n̄_{w}, ρ) 둘이다.",
-        "P_{tot}에서 매처와 안테나의 손실을 뺀 나머지가 P_{abs}다: 정진욱 (2026) §2.4 p.135. 전류 표기와 공통 위상: 부록 A4.")
+s.frame("0D에서 본 이중 코일: 입력 셋, 흡수 전력 하나", "0D 모델  ·  이중 코일의 제어 입력",
+        "입력을 셋으로 늘려도 0D의 출력은 밀도 n_{0} 하나다.",
+        "P_{tot}에서 매처와 안테나의 손실을 뺀 나머지가 P_{abs}다: 정진욱 (2026) §2.4 p.135. 식 (2.70), (2.73). 전류 표기와 공통 위상: 부록 A4.")
 c5 = TOP + 330000
 chamber(s, c5, currents=True)
 px = 4663440
-pw, ph = s.eq("fig_phasor.png", px, TOP + 20000, emu_per_px=2650)
+pw, ph = s.eq("fig_phasor.png", px, TOP + 20000, emu_per_px=2500)
 s.box("페이저 설명", px, TOP + 20000 + ph + 10000, pw, 280000, [para("I_{out} = k e^{jφ} I_{in}", B1, INK, True, algn="ctr", aft=0)])
 kx = px + pw + 150000
 kw = R - kx
@@ -355,98 +384,88 @@ for k, (sym, nm) in enumerate([("k", "전류 크기비"), ("φ", "전류 위상�
     ky = TOP + 60000 + k * (kh + 90000)
     s.box(f"입력 {k + 1} 기호", kx, ky, 560000, kh, [para(sym, 1500, "FFFFFF", True, algn="ctr", aft=0)], fill=NAVY, anchor="ctr")
     s.box(f"입력 {k + 1}", kx + 560000, ky, kw - 560000, kh, [para(nm, B1, INK, True, aft=0)], line=LINE, inset=91440, anchor="ctr")
-ty = c5 + 1659636 + 130000
-s.box("자유도 세기", L, ty, W, 300000, [
-    para("전류 2개 = 크기 2 + 위상 2.  공통 위상은 시간 평균 전력과 무관하므로 독립 변수는 3개다.", B1, algn="ctr", aft=0)])
-io_strip(s, ty + 400000, "k,  φ,  P_{tot}", "이중 코일 ICP",
-         "입력이 출력보다 많은 것은 필요조건이다. 각 입력이 n̄_{w}와 ρ를 어떻게 바꾸는지 봐야 한다.")
+s.box("자유도 세기", px, TOP + 20000 + ph + 330000, R - px, 300000, [
+    para("공통 위상을 빼면 독립 변수는 3개다.", S1, SUB, algn="ctr", aft=0)])
+fy5 = c5 + 1659636 + 230000
+flow(s, fy5, "k,  φ,  P_{tot}", "이중 코일", [
+    para("0D 식에서 세 입력이 들어갈 자리는 P_{abs}뿐이다.", 1500, INK, True, aft=80),
+    para("같은 P_{abs}를 주는 (k, φ, P_{tot})는 같은 n_{0}를 준다. T_{e}는 달라지지 않는다.", B1, INK, aft=0)],
+     cap_x=L + 2300000, cap_w=W - 2300000)
+s.eq("eq_n0k.png", L + 60000, fy5 + 640000 + 140000, emu_per_px=1500)
 s.pagenum()
 s.write(6)
 
-# ===================== 6. 이중 코일의 가열과 0D (slide7.xml) =====================
+# ===================== 6. 0D의 한계 (slide7.xml) =====================
 s = Slide()
-s.frame("이중 코일의 가열: 0D에는 흡수 전력만 남는다", "이중 코일  ·  두 코일 장의 중첩과 부피 적분",
-        "0D에서 k와 φ는 흡수 전력의 크기로만 나타나고, 밀도비 ρ는 정의되지 않는다.",
-        "정진욱 (2026) 식 (2.31)–(2.32), (2.73)을 두 코일로 확장 [유도]. Ẽ: 단위 전류당 E_{θ} (전도도 고정). 부록 A13.")
-ew, eh = s.eq("eq_pe3.png", L, TOP + 40000, emu_per_px=1900, max_w=W - 60000, center_w=W)
+s.frame("0D의 한계: 세 가지 문제", "0D의 한계  ·  0D로 답할 수 없는 것과 2D 모델에 필요한 것",
+        "0D로는 ρ를 계산할 수도, k와 φ의 효과를 가릴 수도 없다.",
+        "정진욱 (2026) §2.4 p.137, §1.10 pp.62–64 식 (1.76), (1.79), (1.83). χ_{01}: J_{0}의 첫 영점, ν_{iz}: 이온화 주파수, D_{a}: 양극성 확산 계수.")
+xb, wb_ = L, 520000
+xp, wp_ = L + 520000, 4480560
+xn = xp + wp_ + 560000
+wn = R - xn
+s.box("문제 머리글", xp, TOP, wp_, 280000, [para("0D의 문제", B1, SUB, True, aft=0)])
+s.box("필요 머리글", xn, TOP, wn, 280000, [para("2D 모델에 필요한 것", B1, SUB, True, aft=0)])
+rh, rg = 1120000, 90000
+rows = [
+    ("ρ를 정의할 수 없다", ["결과는 공간 평균 T_{e}, n_{0}뿐이다 (교재 p.137)."], None,
+     "n(r, z)", "중앙과 가장자리를 나누는 밀도 분포"),
+    ("k와 φ의 효과를 가릴 수 없다", ["세 입력이 P_{abs} 하나로만 들어간다."], None,
+     "p_{e}(r, z)", "위치마다 다른 가열 분포"),
+    ("T_{e}가 균일하면 분포의 모양이 고정된다", ["모양은 용기 크기 R, L이 정한다. ρ는 k, φ와 무관하다."], "eq_diffmode.png",
+     "T_{e}(r, z),  G(r, z)", "위치마다 다른 전자온도와 이온화"),
+]
+for k, (hd, subs, img, need, needsub) in enumerate(rows):
+    y = TOP + 320000 + k * (rh + rg)
+    s.box(f"번호 {k + 1}", xb, y, wb_, rh, [para(str(k + 1), 2400, "FFFFFF", True, algn="ctr", aft=0)], fill=NAVY, anchor="ctr")
+    if img:
+        s.box(f"문제 {k + 1}", xp, y, wp_, rh, None, line=LINE)
+        s.box(f"문제 {k + 1} 제목", xp + 137160, y + 70000, wp_ - 274320, 290000, [para(hd, T1, INK, True, aft=0)])
+        s.eq(img, xp + 137160, y + 400000, emu_per_px=1080)
+        s.box(f"문제 {k + 1} 설명", xp + 137160, y + 760000, wp_ - 274320, 280000, [para(subs[0], S1, SUB, aft=0)])
+    else:
+        s.box(f"문제 {k + 1}", xp, y, wp_, rh, [para(hd, T1, INK, True, aft=120)] + [para(t, B1, SUB, aft=0) for t in subs],
+              line=LINE, inset=137160, anchor="ctr")
+    s.arrow(f"필요 화살표 {k + 1}", xp + wp_ + 60000, y + rh // 2, 440000, color=INK, width=25400)
+    s.box(f"필요 {k + 1}", xn, y, wn, rh, [para(need, T1, HEAD, True, algn="ctr", aft=100), para(needsub, S1, INK, algn="ctr", aft=0)],
+          fill="EEF3FB", inset=91440, anchor="ctr")
+s.pagenum()
+s.write(7)
+
+# ===================== 7. 2D 모델을 쓰는 근거 (slide10.xml) =====================
+s = Slide()
+s.frame("2D 모델: 0D의 세 문제에 답한다", "2D (r, z) 모델  ·  모델을 2D로 정한 근거",
+        "2D 모델이라야 k와 φ가 밀도비 ρ를 바꾸는지 판정할 수 있다.",
+        "p_{e}: 정진욱 (2026) 식 (2.31)–(2.32)를 두 코일로 확장 [유도]. Ẽ: 단위 전류당 E_{θ}, ψ: 두 장의 상대 위상.")
+s.box("사슬 제목", L, TOP, W, 280000, [para("2D 모델의 계산 사슬", B1, HEAD, True, aft=0)])
+cyc, chc, gapc = TOP + 320000, 560000, 200000
+items = [("코일 전류", "I_{0}, k, φ"), ("유도 전기장", "E_{θ}(r, z)"), ("흡수 옴전력", "p_{e}(r, z)"),
+         ("전자온도", "T_{e}(r, z)"), ("이온화", "G(r, z)"), ("밀도", "n(r, z) → ρ")]
+chain(s, cyc, chc, items, "2D 사슬", gap_min=gapc, sz=(1200, 1300))
+bwc = (W - 5 * gapc) // 6
+gc = (W - 6 * bwc) // 5
+tagy = cyc + chc + 50000
+for lab, k0, k1 in [("문제 2의 답", 2, 2), ("문제 3의 답", 3, 4), ("문제 1의 답", 5, 5)]:
+    x0 = L + k0 * (bwc + gc)
+    x1 = L + k1 * (bwc + gc) + bwc
+    s.box(f"꼬리표 선 {lab}", x0, tagy, x1 - x0, 27432, None, fill=NAVY)
+    s.box(f"꼬리표 {lab}", x0 - 100000, tagy + 40000, x1 - x0 + 200000, 260000, [para(lab, S1, NAVY, True, algn="ctr", aft=0)])
+hy = tagy + 400000
+s.box("간섭 제목", L, hy, W, 290000, [para("2D에서는 k와 φ가 가열 분포의 모양을 바꾼다", T1, HEAD, True, aft=0)])
+ew, eh = s.eq("eq_pe3.png", L, hy + 340000, emu_per_px=1750, max_w=W - 60000, center_w=W)
 ex = L + (W - ew) // 2
-ly = TOP + 40000 + eh + 40000
+ly = hy + 340000 + eh + 30000
 for key, lab, col in [("in", "안쪽 코일", BLUE), ("out", "바깥쪽 코일", ORANGE), ("x", "간섭: 위치마다 다르다", NAVY)]:
     a, b = SPANS[key]
     s.box(f"밑줄 {key}", ex + int(a * ew), ly, int((b - a) * ew), 27432, None, fill=col)
     mid = ex + int((a + b) / 2 * ew)
-    s.box(f"항 {key}", mid - 1300000, ly + 50000, 2600000, 280000,
+    s.box(f"항 {key}", mid - 1300000, ly + 40000, 2600000, 270000,
           [para(lab, B1, ORANGE_T if col == ORANGE else col, True, algn="ctr", aft=0)])
-ry = ly + 480000
-# 왼쪽: 한 위치에서 두 장의 합
-s.box("합 제목", L, ry, 3300000, 280000, [para("한 위치에서 두 코일 장의 합", B1, HEAD, True, aft=0)])
-fw, fh = s.eq("fig_sum.png", L, ry + 330000, emu_per_px=3050)
-s.box("합 설명", L, ry + 330000 + fh + 60000, 3300000, 520000, [
-    para("ψ(r, z): 두 장의 상대 위상", S1, SUB, aft=40),
-    para("사이 각 φ + ψ가 보강·상쇄를 정한다.", S1, INK, aft=0)])
-# 오른쪽: 2D 분포 → 부피 적분 → 0D 값
-tx1, tw6 = 3930000, 2011680
-tx2 = R - tw6
-th6 = 1850000
-for nm, x, hd, sym, l1, l2, col in [
-        ("2D", tx1, "2D 분포", "p_{e}(r, z)", "간섭이 위치마다 다르다.", "k와 φ가 가열 분포의 모양을 바꾼다.", HEAD),
-        ("0D", tx2, "0D 값", "P_{abs}", "숫자 하나만 남는다.", "k와 φ는 n_{0}만 바꾼다. ρ는 없다.", ORANGE_T)]:
-    s.box(f"{nm} 타일", x, ry, tw6, th6, [
-        para(hd, T1, col, True, algn="ctr", aft=50),
-        para(sym, 1800, INK, True, algn="ctr", aft=250),
-        para(l1, S1, SUB, algn="ctr", aft=100),
-        para(l2, B1, INK, algn="ctr", aft=0)], line=LINE, inset=91440, anchor="ctr")
-    s.box(f"{nm} 강조선", x, ry, tw6, 45720, None, fill=col)
-gx, gw = tx1 + tw6 + 60000, tx2 - tx1 - tw6 - 120000
-s.arrow("적분 화살표", gx, ry + th6 // 2, gw, color=INK, width=25400)
-s.box("적분 표기", gx - 60000, ry + th6 // 2 - 330000, gw + 120000, 280000, [para("∫ dV", 1500, INK, True, algn="ctr", aft=0)])
-s.box("전력비 설명", tx1, ry + th6 + 90000, R - tx1, 520000, [
-    para("P_{abs}는 코일별로 나눌 수 없다. k는 흡수 전력의 비가 아니다.", S1, INK, algn="ctr", aft=0)])
-s.pagenum()
-s.write(7)
-
-# ===================== 7. 0D의 한계와 2D 모델의 필요성 (slide10.xml) =====================
-s = Slide()
-s.frame("0D의 한계와 2D 모델의 필요성", "0D에서 2D로  ·  0D 모델의 적용 범위 (교재 §2.4, §1.10)",
-        "ρ는 n(r, z)에서만 정해지므로, 코일 전류에서 n(r, z)까지를 2D로 풀어야 한다.",
-        "정진욱 (2026) §2.4 p.137, §1.10 pp.62–64 식 (1.76), (1.79), (1.83). χ_{01}: J_{0}의 첫 영점. T_{e}(r, z)는 팀 2D 모델에서 구한다.")
-pw7, ph7 = 3566160, 1480000
-xr7 = R - pw7
-for nm, x, hd, col in [("0D", L, "0D 모델", ORANGE_T), ("2D", xr7, "2D 모델 (r, z)", HEAD)]:
-    s.box(f"{nm} 패널", x, TOP, pw7, ph7, None, line=LINE)
-    s.box(f"{nm} 강조선", x, TOP, pw7, 45720, None, fill=col)
-    s.box(f"{nm} 제목", x + 109728, TOP + 90000, pw7 - 219456, 300000, [para(hd, T1, col, True, aft=0)])
-mx, my, mw, mh = 150000, 480000, 1500000, 820000
-# 0D: 값 하나로 채운 상자
-s.shape("rect", "0D 챔버", L + mx, TOP + my, mw, mh, fill="DCE6F5", line="5F6779")
-s.box("0D 값", L + mx, TOP + my, mw, mh, [para("T_{e},  n_{0}", 1600, INK, True, algn="ctr", aft=0)], anchor="ctr")
-s.box("0D 설명", L + mx + mw + 130000, TOP + my, pw7 - mx - mw - 230000, mh, [
-    para("공간 평균 값 하나씩", S1, SUB, aft=120),
-    para("ρ를 정의할 수 없다", B1, INK, True, aft=0)], anchor="ctr")
-# 2D: 중앙·가장자리 영역이 있는 상자
-s.shape("rect", "2D 챔버", xr7 + mx, TOP + my, mw, mh, fill="F7F9FC", line="5F6779")
-s.box("2D 값", xr7 + mx, TOP + my + 60000, mw, 300000, [para("n(r, z)", 1500, INK, True, algn="ctr", aft=0)])
-s.shape("rect", "2D 중앙", xr7 + mx, TOP + my + mh - 190000, 430000, 64008, fill=BLUE)
-s.shape("rect", "2D 가장자리", xr7 + mx + 920000, TOP + my + mh - 190000, 300000, 64008, fill=ORANGE)
-s.box("2D n_c", xr7 + mx + 20000, TOP + my + mh - 440000, 500000, 240000, [para("n_{c}", S1, BLUE, True, aft=0)])
-s.box("2D n_edge", xr7 + mx + 880000, TOP + my + mh - 440000, 620000, 240000, [para("n_{edge}", S1, ORANGE_T, True, aft=0)])
-s.box("2D 설명", xr7 + mx + mw + 130000, TOP + my, pw7 - mx - mw - 230000, mh, [
-    para("위치마다 다른 밀도", S1, SUB, aft=120),
-    para("ρ = n_{c} / n_{edge}", B1, INK, True, aft=0)], anchor="ctr")
-s.arrow("모델 화살표", L + pw7 + 90000, TOP + ph7 // 2, xr7 - L - pw7 - 180000, color=INK, width=25400)
-# 전자온도 균일이면 형상 고정
-iy, ih = TOP + ph7 + 130000, 1000000
-s.box("형상 상자", L, iy, W, ih, None, fill="F4F6FA")
-w, h = s.eq("eq_diffmode.png", L + 150000, iy + (ih - 293 * 1480) // 2, emu_per_px=1480)
-s.box("형상 설명", L + 150000 + w + 200000, iy, W - w - 450000, ih, [
-    para("T_{e}가 균일하면 분포의 모양은 용기 크기가 정한다.", S1, INK, aft=100),
-    para("ρ는 k, φ로 바뀌지 않는다.", B1, ORANGE_T, True, aft=0)], anchor="ctr")
-# 2D 사슬
-fy7 = iy + ih + 110000
-s.box("사슬 제목", L, fy7, W, 280000, [para("2D 모델이 이어야 할 사슬", B1, HEAD, True, aft=0)])
-chain(s, fy7 + 320000, 560000, [("코일 전류", "I_{0}, k, φ"), ("유도 전기장", "E_{θ}(r, z)"), ("흡수 옴전력", "p_{e}(r, z)"),
-                                 ("전자온도", "T_{e}(r, z)"), ("이온화", "G(r, z)"), ("밀도", "n(r, z) → ρ")], "2D 사슬",
-      gap_min=200000, sz=(1200, 1300))
+fy = ly + 370000
+fw, fh = s.eq("fig_sum.png", L + 250000, fy, emu_per_px=2300, max_h=BOT - fy)
+s.box("합 설명", L + 250000 + fw + 350000, fy, R - (L + 250000 + fw + 350000), fh, [
+    para("한 위치에서 두 코일 장의 합", B1, HEAD, True, aft=100),
+    para("사이 각 φ + ψ(r, z)가 위치마다 달라, 보강되는 곳과 상쇄되는 곳이 생긴다.", B1, INK, aft=0)], anchor="ctr")
 s.pagenum()
 s.write(10)
 
