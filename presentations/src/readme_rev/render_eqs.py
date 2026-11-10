@@ -7,12 +7,17 @@ matplotlib.rcParams["mathtext.fontset"] = "cm"
 EQ = {
     "n_avg":    r"$\langle n \rangle_S = \dfrac{1}{A_S}\int_S n(r, z_w)\,dA$",
     "n_rhotgt": r"$\rho \equiv n_c\,/\,n_\mathrm{edge}, \qquad \Delta\bar{n}_w = 0, \quad \Delta\rho \neq 0$",
-    "n_pabs1":  r"$P_\mathrm{abs} = \frac{1}{2}\,|I_\mathrm{RF}|^2\;\mathrm{Re}\left(\dfrac{\omega^2M^2}{Z_p}\right)$",
-    "n_ip":     r"$I_p = \dfrac{j\omega\,(M_{ip}\,I_\mathrm{in} + M_{op}\,I_\mathrm{out})}{Z_p}$",
-    "n_pabs2":  r"$P_\mathrm{abs} = \frac{1}{2}R_p|I_p|^2 = \frac{\omega^2 R_p\, I_0^2}{2\,|Z_p|^2}\left[M_{ip}^2 + k^2M_{op}^2 + 2k\,M_{ip}M_{op}\cos\phi\right]$",
-    "n_vin":    r"$V_\mathrm{in} = Z_{ii}\,I_\mathrm{in} + Z_{io}\,I_\mathrm{out}$",
-    "n_vout":   r"$V_\mathrm{out} = Z_{oi}\,I_\mathrm{in} + Z_{oo}\,I_\mathrm{out}$",
-    "n_zio":    r"$Z_{io} = Z_{oi} = j\omega M_{io} + \dfrac{\omega^2 M_{ip} M_{op}}{Z_p}$",
+    # 교재 식 (2.31)–(2.32): 흡수 옴전력 (J = sigma_p E, 피크 페이저)
+    "n_pe":     r"$p_e = \frac{1}{2}\,\mathrm{Re}(\sigma_p)\,|E_\theta|^2$",
+    # 교재 식 (2.70), (2.73)
+    "n_te":     r"$\dfrac{K_{iz}(T_e)}{u_B(T_e)} = \dfrac{1}{n_g\, d_\mathrm{eff}}$",
+    "n_n0":     r"$n_0 = \dfrac{P_\mathrm{abs}}{e\,u_B\,\varepsilon_T\,A_\mathrm{eff}}$",
+    # 두 코일 장의 중첩 (전도도 고정)
+    "n_esup":   r"$E_\theta(r,z) = I_0\left[\tilde{E}_\mathrm{in}(r,z) + k\,e^{j\phi}\,\tilde{E}_\mathrm{out}(r,z)\right]$",
+    "n_pe2":    r"$p_e = \frac{1}{2}\mathrm{Re}(\sigma_p)\,I_0^2\left[\,|\tilde{E}_\mathrm{in}|^2 + k^2|\tilde{E}_\mathrm{out}|^2 + 2k\,|\tilde{E}_\mathrm{in}||\tilde{E}_\mathrm{out}|\cos(\phi + \psi)\right]$",
+    # 교재 식 (1.76)의 정상 상태, 기본 모드 (1.79)·(1.83)
+    "n_diff":   r"$-D_a \nabla^2 n = \nu_{iz}\, n$",
+    "n_mode":   r"$n \propto J_0\!\left(\dfrac{\chi_{01}\, r}{R}\right)\cos\dfrac{\pi z}{L}$",
 }
 for k, tex in EQ.items():
     fig = plt.figure(figsize=(0.01, 0.01))

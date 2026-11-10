@@ -1,4 +1,4 @@
-"""README 지시에 따라 슬라이드 1, 3–8을 다시 만든다 (기존 양식 요소를 그대로 재사용, 식은 쪽마다 1–2개)."""
+"""README 지시에 따라 표지와 슬라이드 3–10을 다시 만든다 (기존 양식 유지, 0D 부분은 교재 식으로, 임피던스는 2D로 넘김)."""
 import os
 import re
 import shutil
@@ -7,7 +7,6 @@ from PIL import Image
 
 U = "un"                      # 풀어 둔 pptx
 EQ = "eq2"                    # 새 식 PNG
-FIG = "fig"                   # 등가회로 그림 PNG
 NAVY, SUB, INK, HEAD, LINE = "303399", "4C5B72", "17263C", "004680", "D8E1EB"
 BLUE, ORANGE, ORANGE_T = "3366CC", "D9622B", "B24A16"
 FONT = '<a:latin typeface="Arial"/><a:ea typeface="맑은 고딕"/>'
@@ -121,7 +120,7 @@ class Slide:
         self.pics.append(media)
         rid = f"rIdP{len(self.pics)}"
         self.items.append(
-            f'<p:pic><p:nvPicPr><p:cNvPr id="{i}" name="{"그림" if media.startswith("fig_") else "수식"} {media[:-4]}" descr="{media}"/><p:cNvPicPr><a:picLocks noChangeAspect="1"/></p:cNvPicPr><p:nvPr/></p:nvPicPr>'
+            f'<p:pic><p:nvPicPr><p:cNvPr id="{i}" name="수식 {media[:-4]}" descr="{media}"/><p:cNvPicPr><a:picLocks noChangeAspect="1"/></p:cNvPicPr><p:nvPr/></p:nvPicPr>'
             f'<p:blipFill><a:blip r:embed="{rid}"/><a:stretch><a:fillRect/></a:stretch></p:blipFill>'
             f'<p:spPr><a:xfrm><a:off x="{x}" y="{y}"/><a:ext cx="{w}" cy="{h}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr></p:pic>')
         return w, h
@@ -175,14 +174,13 @@ def notes(slide_n, script_head, script, basis):
 
 
 # 새 식·그림 PNG를 media로 복사
-for d, pre in ((EQ, "eq_"), (FIG, "")):
-    for f in os.listdir(d):
-        if f.endswith(".png") and (f.startswith("n_") or f.startswith("fig_")):
-            shutil.copy(f"{d}/{f}", f"{U}/ppt/media/{pre}{f[2:] if f.startswith('n_') else f}")
+for f in os.listdir(EQ):
+    if f.startswith("n_") and f.endswith(".png"):
+        shutil.copy(f"{EQ}/{f}", f"{U}/ppt/media/eq_{f[2:]}")
 
 L, R, W = 457200, 8686800, 8229600   # 좌우 여백, 본문 폭
 TOP, BOT = 1335000, 5310000          # 본문 위·아래 끝
-LEGEND = "[[3366CC|■]] 안쪽 코일   [[D9622B|■]] 바깥쪽 코일   [[303399|■]] 플라즈마 고리"
+LEGEND = "[[3366CC|■]] 안쪽 코일   [[D9622B|■]] 바깥쪽 코일   [[303399|■]] 플라즈마 전류 루프"
 
 # ===================== 1. 표지 (slide1.xml): 부제만 흐름에 맞춤 =====================
 p1 = f"{U}/ppt/slides/slide1.xml"
@@ -251,165 +249,209 @@ notes(4, "[대본 · 0:20–1:20 / 60초]",
       "평가 영역 경계 r_c, r_1, r_2, R_w와 관측 높이 z_w는 설계 단계에서 정한다. 목표는 한 영역을 고정하고 다른 영역만 바꾸는 것과 다르다. 상세 정의: 부록 A3.")
 
 # ===================== 4. 단일 코일 (slide5.xml) =====================
+def chain(s, y, h, items, name, gap_min=None):
+    """가로 사슬: 상자 n개 + 사이 화살표. items = [(윗줄, 아랫줄), ...]"""
+    n = len(items)
+    bw = (W - (n - 1) * (gap_min or 240000)) // n
+    gap = (W - n * bw) // (n - 1)
+    for k, (top, bot) in enumerate(items):
+        x = L + k * (bw + gap)
+        s.box(f"{name} {k + 1}", x, y, bw, h,
+              [para(top, 1200, SUB, algn="ctr", aft=0), para(bot, 1250, INK, True, algn="ctr", aft=0)],
+              line="8C93A3", anchor="ctr")
+        if k < n - 1:
+            s.arrow(f"{name} 화살표 {k + 1}", x + bw + 30000, y + h // 2, gap - 60000)
+
+
 s = Slide()
-s.frame("단일 코일 ICP: 입력은 전력 하나", "변압기 모델과 0D 전력 균형  ·  교재 §2.3.4, §2.4",
+s.frame("단일 코일 ICP: 입력은 전력 하나", "유도 가열과 0D 균형  ·  교재 §2.3, §2.4",
         "단일 코일로는 평균 밀도를 유지한 채 밀도비를 바꿀 수 없다.",
-        "정진욱 (2026) §2.3.4 pp.123–125 식 (2.54)–(2.57), §2.4 pp.133–138 식 (2.66)–(2.70). 유도: 부록 A10, A14.")
-cw, ch = 4023360, 2930000
-s.card("변압기 모델 카드", L, TOP, cw, ch, [para("변압기 모델: 코일에서 본 플라즈마", 1400, HEAD, True)])
-w, h = s.eq("fig_single.png", L + 109728, 1660000, emu_per_px=1550, center_w=cw - 219456)
-w2, h2 = s.eq("eq_pabs1.png", L + 109728, 1660000 + h + 40000, emu_per_px=1250, center_w=cw - 219456)
-yy = 1660000 + h + 40000 + h2 + 50000
-s.box("변압기 기호", L + 109728, yy, cw - 219456, TOP + ch - yy - 40000, [
-    para("1차: 코일,  2차: 플라즈마의 방위각 방향 유도 전류", 1200, SUB, bullet=True, aft=120),
-    para("Z_{p} = R_{p} + jω(L_{g} + L_{p}): 플라즈마 고리의 임피던스", 1200, SUB, bullet=True, aft=120),
-    para("Re(ω^{2}M^{2}/Z_{p}) > 0: 플라즈마는 저항성 부하로 보인다", 1200, SUB, bullet=True, aft=0)])
+        "정진욱 (2026) §2.3.1 pp.103–105 식 (2.26), (2.31)–(2.32), §2.3.4 p.122 식 (2.52), §2.4 pp.136–138 식 (2.70), (2.73).")
+chain(s, TOP, 520000, [("안테나 전류", "I(t)"), ("시변 자속", "dΦ/dt"), ("원주 유도 전기장", "E_{θ}"),
+                       ("흡수 옴전력", "p_{e}"), ("충돌 이온화", "K_{iz}(T_{e})")], "가열 사슬")
+cy4, ch4 = TOP + 640000, 2250000
+cw = 4023360
+s.card("공간 카드", L, cy4, cw, ch4, [para("공간에서: 전류는 크기만 바꾼다", 1400, HEAD, True)])
+w, h = s.eq("eq_pe.png", L + 109728, cy4 + 360000, emu_per_px=1350, center_w=cw - 219456)
+yy = cy4 + 360000 + h + 90000
+s.box("공간 설명", L + 109728, yy, cw - 219456, cy4 + ch4 - yy - 40000, [
+    para("σ_{p} = n_{e}e^{2}/[m(ν + jω)]: 플라즈마 전도도 (2.26)", 1200, SUB, bullet=True, aft=150),
+    para("E_{θ}는 안테나 전류에 비례하고, 공간 모양은 코일 구조가 정한다 (2.52).", 1200, SUB, bullet=True, aft=150),
+    para("전도도가 같으면 전류는 p_{e}(r, z)의 크기만 바꾸고 모양은 바꾸지 않는다.", 1250, INK, True, aft=0)])
 x2 = L + cw + 182880
-s.card("0D 전력 균형 카드", x2, TOP, cw, ch, [para("0D 전력 균형: 밀도 수준", 1400, HEAD, True)])
-w, h = s.eq("image23.png", x2 + 109728, 1700000, emu_per_px=1350, center_w=cw - 219456)
-yy = 1700000 + h + 120000
-s.box("전력 균형 기호", x2 + 109728, yy, cw - 219456, TOP + ch - yy - 40000, [
-    para("ε_{T}: 이온–전자 쌍 하나를 잃을 때의 총 에너지 비용", 1200, SUB, bullet=True, aft=250),
-    para("u_{B}: 봄 속도,  A_{eff}: 유효 손실 면적", 1200, SUB, bullet=True, aft=250),
-    para("T_{e}는 입자 균형이 압력과 기하로 정하므로 ε_{T}, u_{B}는 전력과 무관하다.", 1200, SUB, bullet=True, aft=250),
-    para("따라서 밀도 수준은 흡수 전력에 비례한다.", 1250, INK, True, aft=0)])
-by = TOP + ch + 80000
+s.card("0D 카드", x2, cy4, cw, ch4, [para("0D에서: 전력이 밀도 수준을 정한다", 1400, HEAD, True)])
+tw, th = 1077 * 1250, 385 * 1250
+nw_, nh_ = 1047 * 1250, 349 * 1250
+x0 = x2 + 109728 + (cw - 219456 - (tw + 300000 + nw_)) // 2
+s.eq("eq_te.png", x0, cy4 + 340000, emu_per_px=1250)
+s.eq("eq_n0.png", x0 + tw + 300000, cy4 + 340000 + (th - nh_) // 2, emu_per_px=1250)
+yy = cy4 + 340000 + th + 90000
+s.box("0D 설명", x2 + 109728, yy, cw - 219456, cy4 + ch4 - yy - 40000, [
+    para("입자 균형 (2.70): T_{e}는 압력(n_{g})과 용기 크기(d_{eff})가 정하고, 전력과 무관하다.", 1200, SUB, bullet=True, aft=150),
+    para("전력 균형 (2.73): P_{abs} = ∫p_{e} dV,  ε_{T}: 전자–이온 한 쌍이 손실될 때 필요한 총에너지", 1200, SUB, bullet=True, aft=150),
+    para("따라서 n_{0}는 P_{abs}에 비례한다.", 1250, INK, True, aft=0)])
+by = cy4 + ch4 + 80000
 s.box("단일 입력 상자", L, by, W, BOT - by, [
-    para("입력이 하나면 출력 두 개를 따로 정할 수 없다", 1400, HEAD, True, aft=250),
-    para("압력·주파수·코일 형상을 고정하면 바꿀 수 있는 입력은 공급 전력 P 하나다.", 1250, bullet=True, aft=150),
+    para("입력이 하나면 출력 두 개를 따로 정할 수 없다", 1400, HEAD, True, aft=200),
+    para("압력·주파수·코일 형상을 고정하면 바꿀 수 있는 입력은 공급 전력 P 하나다.", 1250, bullet=True, aft=120),
     para("n̄_{w}는 P에 따라 단조 증가하므로, n̄_{w}를 정하면 P가 정해지고 그 P에서 ρ도 하나로 정해진다.", 1250, bullet=True, aft=0)],
       fill="F4F6FA", inset=109728)
 s.pagenum()
 s.write(5)
 notes(5, "[대본 · 1:20–2:20 / 60초]",
-      "코일이 하나일 때를 교재의 변압기 모델로 보겠습니다. 코일이 1차 회로, 플라즈마의 방위각 방향 유도 전류가 2차 회로입니다. "
-      "코일 쪽에서 보면 플라즈마는 ω²M²/Z_p라는 임피던스로 더해지고, 그 실수부가 양수이므로 저항성 부하처럼 전력을 흡수합니다. 흡수 전력은 코일 전류의 제곱에 비례합니다. "
-      "0D 전력 균형에서는 전자온도가 입자 균형으로 정해지므로 밀도 수준은 흡수 전력에 비례합니다. "
-      "그러면 압력과 코일 형상을 고정한 단일 코일에서 바꿀 수 있는 입력은 전력 하나입니다. 평균 밀도를 정하면 전력이 정해지고, 그 전력에서 밀도비도 하나로 정해집니다. "
-      "그래서 단일 코일로는 목표를 이룰 수 없습니다.",
-      "정진욱 (2026) §2.3.4 pp.123–125 식 (2.54)–(2.57): V_RF = (R_a + jωL_a + ω²M²/Z_p)I_RF, Z_p = R_p + jω(L_g + L_p), "
-      "Re(ω²M²/Z_p) = ω²M²R_p/[R_p² + ω²(L_g + L_p)²] > 0. L_g는 플라즈마 전류 경로의 기하 인덕턴스, L_p는 전자 관성에 의한 인덕턴스. "
-      "§2.4 식 (2.66)–(2.68): n_* = P_abs/(eε_T u_B A_eff), 식 (2.69)–(2.70): 입자 균형 n_g K_iz(T_e) = u_B/d_eff가 T_e를 정한다. "
-      "단일 전류의 위상은 시간 원점의 선택이므로 시간 평균 전력에 영향이 없다. 실제 장치에서는 전력이 밀도와 표피 효과를 바꿔 ρ도 변할 수 있지만(예: E–H 전이, Park 2017), "
-      "그 변화도 P 하나의 함수이므로 n̄_w와 따로 정할 수 없다. 유도: 부록 A10, A14.")
+      "코일이 하나일 때를 보겠습니다. 안테나에 흐르는 교류 전류가 시변 자속을 만들고, 패러데이 법칙에 따라 원주 방향의 유도 전기장이 생깁니다. "
+      "이 전기장은 플라즈마 전도도를 통해 전자에 옴전력을 줍니다. 전도도가 같다면 전기장은 전류에 비례하고 공간 모양은 코일 구조가 정하므로, 전류는 가열 분포의 크기만 바꿉니다. "
+      "0D 모델에서는 입자 균형이 압력과 용기 크기로 전자온도를 정하고, 전력 균형에서 밀도 n_0는 흡수 전력에 비례합니다. "
+      "결국 압력과 코일 형상을 고정한 단일 코일에서 바꿀 수 있는 입력은 전력 하나입니다. 평균 밀도를 정하면 전력이 정해지고, 그 전력에서 밀도비도 하나로 정해집니다.",
+      "정진욱 (2026) §2.3.1 p.103 식 (2.25) J = σ_pE, 식 (2.26) σ_p = n_e e²/[m(ν + jω)]. p.105 식 (2.31) p_e = ⟨J·E⟩ = ½Re(J·E*) [W/m³], "
+      "식 (2.32) p_e = ½E²σ_dc ν²/(ω² + ν²), σ_dc = ne²/(mν). 따라서 p_e = ½Re(σ_p)|E|²(E는 피크 진폭). "
+      "§2.3.4 p.122 식 (2.52): 원통형 ICP에서 V = 2πrE_θ = −dΦ/dt로부터 E_θ(r, t) = −(μ_0r/2)ωnI_0cos ωt(n은 단위 길이당 감은 수). 평면 코일도 E_θ는 전류에 비례하고 축 위에서 0이다. "
+      "§2.4 p.136 식 (2.69)–(2.70): K_iz n_g n_0 V = h n_0 u_B A, K_iz(T_e)/u_B(T_e) = 1/(n_g d_eff), d_eff = V/(hA). "
+      "p.138 식 (2.73): n_0 = P_abs/(e u_B ε_T A_eff), A_eff = 2πR²h_L + 2πRLh_R. p.134: ε_T = ε_c + ε_e + ε_i (식 2.65). "
+      "p.137: 이 단순 모델에서는 T_e가 밀도와 무관하지만, 실제로는 두 식이 결합되어 T_e가 밀도·압력·면적 대 부피비의 함수가 된다. "
+      "실제 장치에서는 전력에 따라 밀도와 표피 깊이가 바뀌어 ρ도 변할 수 있지만(예: E–H 전이, Park 2017), 그 변화도 P 하나의 함수이므로 n̄_w와 따로 정할 수 없다. 부록 A2, A8–A10.")
 
 # ===================== 5. 이중 코일 0D (slide6.xml) =====================
 s = Slide()
-s.frame("이중 코일 ICP의 0D 기술", "두 1차 코일과 하나의 플라즈마 고리  ·  변압기 모델의 확장",
+s.frame("이중 코일 ICP의 0D 기술", "두 코일 장의 중첩과 부피 적분  ·  교재 식 (2.31)–(2.32), (2.73)의 확장",
         "0D에서 k와 φ는 흡수 전력의 크기로만 나타나고, 밀도비 ρ는 정의되지 않는다.",
-        "정진욱 (2026) §2.3.4 식 (2.54)–(2.57)의 두 1차 코일 확장 [유도]. 플라즈마를 하나의 2차 고리로 본 등가회로, M은 실수.")
-fw, fh = s.eq("fig_dual.png", L, TOP, emu_per_px=1550)
-s.box("범례", L, TOP + fh + 20000, fw + 150000, 230000, [para(LEGEND, 1050, SUB)])
-rx = L + fw + 200000
-rw = R - rx
-s.box("전류 제목", rx, TOP, rw, 280000, [para("코일 전류와 플라즈마 고리 전류", 1400, HEAD, True)])
-s.box("전류 정의", rx, TOP + 320000, rw, 520000, [
-    para("I_{in} = I_{0},   I_{out} = k e^{jφ} I_{0}", 1350, aft=150),
-    para("k: 두 코일 전류의 크기비,  φ: 두 코일 전류의 위상차", 1200, SUB, aft=0)])
-w, h = s.eq("eq_ip.png", rx, TOP + 900000, emu_per_px=1350)
-s.box("고리 전류 설명", rx, TOP + 900000 + h + 60000, rw, 760000, [
-    para("고리 전류는 두 코일 기여의 복소수 합이다.", 1250, aft=200),
-    para("M_{ip}, M_{op}: 안쪽·바깥쪽 코일과 플라즈마 고리 사이의 상호 인덕턴스", 1200, SUB, aft=0)])
-ey = TOP + fh + 300000
-w, h = s.eq("eq_pabs2.png", L, ey, emu_per_px=1750, max_w=W - 200000, center_w=W)
-ty = ey + h + 50000
-s.box("세 항 설명", L, ty, W, 420000, [
-    para("괄호 안은 안쪽 코일 항, 바깥쪽 코일 항, **간섭항**이다. M_{ip}M_{op} > 0이면 간섭항은 φ = 0에서 보강, φ = π에서 상쇄한다.", 1250, aft=0)])
-oy = ty + 470000
-s.box("0D 해석 상자", L, oy, W, BOT - oy, [
-    para("같은 P_{abs}를 주는 (k, φ) 조합은 0D에서 구별되지 않는다. 플라즈마를 고리 하나로 보므로 중앙과 가장자리를 나눌 수 없다.", 1250, aft=0)],
-      fill="F4F6FA", inset=109728, anchor="ctr")
+        "정진욱 (2026) 식 (2.31)–(2.32), (2.73)을 두 코일로 확장 [유도]. 장의 중첩은 전도도를 고정한 선형 장 문제에서 성립한다. 부록 A13.")
+s.box("전류 정의", L, TOP, W, 280000, [
+    para("I_{in} = I_{0},  I_{out} = k e^{jφ} I_{0}    [[4C5B72|k: 두 코일 전류의 크기비,  φ: 두 코일 전류의 위상차]]", 1300, aft=0)])
+w, h = s.eq("eq_esup.png", L, TOP + 360000, emu_per_px=1400, center_w=W)
+y5 = TOP + 360000 + h + 50000
+s.box("단위 전류 장", L, y5, W, 250000, [
+    para("Ẽ_{in}, Ẽ_{out}: 각 코일에 단위 전류를 흘렸을 때의 E_{θ}(복소수). 코일 구조와 플라즈마가 정한다.", 1200, SUB, algn="ctr", aft=0)])
+y5 += 350000
+w, h = s.eq("eq_pe2.png", L, y5, emu_per_px=1700, max_w=W - 150000, center_w=W)
+y5 += h + 50000
+s.box("세 항", L, y5, W, 480000, [
+    para("괄호 안: 안쪽 코일 항, 바깥쪽 코일 항, **간섭항**.  ψ(r, z) = arg Ẽ_{out} − arg Ẽ_{in}: 위치마다 다른 상대 위상", 1250, algn="ctr", aft=0)])
+cy5 = y5 + 540000
+ch5 = BOT - cy5
+s.card("공간 분포 카드", L, cy5, cw, ch5, [
+    para("공간 분포에서", 1400, HEAD, True, aft=250),
+    para("간섭항의 크기와 부호가 위치마다 달라, k와 φ로 p_{e}(r, z)의 모양을 바꿀 수 있다.", 1250, bullet=True, aft=150),
+    para("φ = π라도 모든 위치에서 상쇄되지는 않는다(ψ가 위치마다 다름).", 1250, bullet=True, aft=0)])
+s.card("0D 카드", L + cw + 182880, cy5, cw, ch5, [
+    para("0D에서", 1400, HEAD, True, aft=250),
+    para("P_{abs} = ∫p_{e} dV 하나로 줄어, k와 φ는 n_{0} ∝ P_{abs}만 바꾼다.", 1250, bullet=True, aft=150),
+    para("같은 P_{abs}를 주는 (k, φ)는 구별되지 않고, ρ는 정의되지 않는다.", 1250, bullet=True, aft=150),
+    para("간섭항 때문에 P_{abs}를 코일별 몫으로 나눌 수 없다. k는 흡수 전력의 비가 아니다.", 1250, bullet=True, aft=0)])
 s.pagenum()
 s.write(6)
 notes(6, "[대본 · 2:20–3:15 / 55초]",
-      "코일이 둘이면 같은 모델에서 1차 회로가 두 개가 되고, 2차 회로인 플라즈마 고리는 하나입니다. "
-      "두 코일이 같은 고리에 기전력을 걸기 때문에 고리 전류는 두 기여의 복소수 합이 됩니다. "
-      "이것으로 흡수 전력을 계산하면 괄호 안에 안쪽 코일 항, 바깥쪽 코일 항, 그리고 cos φ가 붙은 간섭항이 나옵니다. 위상을 바꾸면 두 기여가 보강하거나 상쇄합니다. "
-      "그런데 0D에서 k와 φ는 결국 흡수 전력이라는 값 하나만 바꿉니다. 플라즈마를 고리 하나로 보기 때문에 중앙과 가장자리를 나눌 수 없고, 밀도비는 이 모델에서 정의되지 않습니다.",
-      "2차 회로식 0 = −jω(M_ip I_in + M_op I_out) + Z_p I_p (식 2.55의 확장)에서 I_p를 얻고, P_abs = ½R_p|I_p|²에 I_in = I_0, I_out = ke^(jφ)I_0를 넣는다. "
-      "M은 실수로 두며 부호는 권선 방향에 따른다(같은 방향이면 M_ip M_op > 0). 플라즈마를 하나의 2차 고리로 보는 근사이므로, "
-      "두 코일이 서로 다른 반경의 플라즈마 전류와 결합하는 효과는 나타나지 않는다. 위치마다 다른 간섭은 2D 장 해석에서 다룬다.")
+      "코일이 둘이면 각 코일이 만든 전기장이 겹칩니다. 전도도가 같다고 두면 전체 전기장은 안쪽 코일의 단위 전류 장에 바깥쪽 코일의 단위 전류 장을 k e^{jφ}배 해서 더한 것입니다. "
+      "이것을 교재의 옴전력 식에 넣으면 괄호 안에 세 항이 나옵니다. 안쪽 코일 항, 바깥쪽 코일 항, 그리고 cos(φ + ψ)가 붙은 간섭항입니다. "
+      "ψ는 위치마다 다르므로 간섭항은 어떤 곳에서는 보강, 어떤 곳에서는 상쇄가 되고, 그래서 k와 φ로 가열 분포의 모양을 바꿀 수 있습니다. "
+      "그런데 0D에서는 이 분포를 부피 적분한 P_abs 하나만 남습니다. k와 φ는 밀도 수준만 바꾸고, 밀도비는 정의되지 않습니다. "
+      "또 간섭항 때문에 흡수 전력을 코일별로 나눌 수 없으므로, k는 흡수 전력의 비가 아닙니다.",
+      "교재 식 (2.25) J = σ_pE, (2.31) p_e = ½Re(J·E*), Re σ_p = σ_dc ν²/(ω² + ν²) (식 2.26, 2.32). "
+      "σ_p를 고정하면 장 방정식이 전류에 선형이므로 E_θ = I_0[Ẽ_in + ke^(jφ)Ẽ_out]. |E_θ|² = I_0²[|Ẽ_in|² + k²|Ẽ_out|² + 2k Re(Ẽ_in* Ẽ_out e^(jφ))], "
+      "Re(Ẽ_in* Ẽ_out e^(jφ)) = |Ẽ_in||Ẽ_out|cos(φ + ψ). 교재에는 두 코일 중첩식이 없다(팀 유도, 부록 A4·A13). "
+      "0D에서는 P_abs = ∫p_e dV만 식 (2.73)에 들어간다. 단위 전류 장은 플라즈마 전도도에 따라 바뀌므로, ψ와 Ẽ의 실제 분포는 2D 장 해석으로 구한다.")
 
 # ===================== 6. 세 독립 변수 (slide7.xml) =====================
 s = Slide()
 s.frame("두 코일 전류의 독립 변수는 세 개다", "제어 입력  ·  상대 진폭 k, 상대 위상 φ, 총 공급 전력 P_{tot}",
         "제어 입력은 (k, φ, P_{tot}) 세 개이고, 맞춰야 할 출력은 (n̄_{w}, ρ) 두 개다.",
-        "공통 위상 제거와 포트 전력으로 I_{0}를 정하는 식: 부록 A4–A5. 전력 균형: 정진욱 (2026) §2.4 식 (2.66)–(2.68).")
+        "P_{abs}의 정의: 정진욱 (2026) §2.4 p.135. 전류 표기와 공통 위상 제거: 부록 A4.")
 s.box("자유도 세기", L, TOP, W, 560000, [
-    para("두 코일 전류 I_{in}, I_{out}은 복소수 두 개, 즉 크기 둘과 위상 둘이다. 공통 위상은 시간 원점의 선택이므로 시간 평균량에 영향이 없고, 독립 변수는 셋이 남는다.", 1300, aft=0)])
+    para("두 코일 전류 I_{in}, I_{out}은 복소수 두 개, 즉 크기 둘과 위상 둘이다. 공통 위상은 시간 원점의 선택이므로 시간 평균 전력에 영향이 없고, 독립 변수는 셋이 남는다.", 1300, aft=0)])
 cy, chh, cw3 = TOP + 640000, 1000000, 2651760
 for k, (hd, body, col) in enumerate([
         ("상대 진폭 k = |I_{out}|/|I_{in}|", "두 코일 전류 크기의 비", BLUE),
         ("상대 위상 φ = arg I_{out} − arg I_{in}", "두 코일 전류의 위상차", ORANGE_T),
-        ("총 공급 전력 P_{tot}", "전류 크기 I_{0} 대신 지정한다. 같은 P_{tot}에서 I_{0}는 k, φ와 플라즈마 상태에 따라 정해진다.", HEAD)]):
+        ("총 공급 전력 P_{tot}", "전류 크기 I_{0} 대신 지정한다. P_{tot}과 I_{0}의 관계는 손실과 플라즈마 상태에 따라 달라진다.", HEAD)]):
     x = L + k * (cw3 + 137160)
     s.card(f"입력 카드 {k + 1}", x, cy, cw3, chh, [para(hd, 1300, col, True, aft=250), para(body, 1200, aft=0)], accent=col)
-# 공급 전력 → 흡수 전력 흐름
 fy = cy + chh + 130000
 s.box("전력 흐름 제목", L, fy, W, 280000, [para("공급 전력에서 흡수 전력까지", 1400, HEAD, True)])
-bw3, bh3 = 1920240, 560000
-gap = (W - 3 * bw3) // 2
-by3 = fy + 340000
-for k, (sym, lab) in enumerate([("P_{tot}", "발전기 출력"), ("P_{port}", "코일 단자"), ("P_{abs}", "플라즈마 흡수")]):
-    s.box(f"전력 {k + 1}", L + k * (bw3 + gap), by3, bw3, bh3,
+bw2, bh2 = 2560320, 560000
+by2 = fy + 340000
+for k, (sym, lab) in enumerate([("P_{tot}", "RF 전원 출력"), ("P_{abs} = ∫p_{e} dV", "플라즈마에 흡수된 전력")]):
+    s.box(f"전력 {k + 1}", L + k * (W - bw2), by2, bw2, bh2,
           [para(sym, 1350, INK, True, algn="ctr", aft=0), para(lab, 1200, SUB, algn="ctr", aft=0)], line="8C93A3", anchor="ctr")
-for k, lab in enumerate(["정합기 손실", "코일 저항 손실"]):
-    ax = L + (k + 1) * bw3 + k * gap + 60000
-    s.arrow(f"전력 화살표 {k + 1}", ax, by3 + bh3 // 2, gap - 120000)
-    s.box(f"손실 {k + 1}", ax, by3 + bh3 // 2 - 260000, gap - 120000, 230000, [para(lab, 1100, SUB, algn="ctr")])
-s.box("전력 흐름 설명", L, by3 + bh3 + 40000, W, 250000, [
-    para("세 전력은 서로 다르고, 손실 비율은 k, φ와 플라즈마 상태에 따라 달라진다.", 1200, SUB, algn="ctr")])
-qy = by3 + bh3 + 340000
+s.arrow("전력 화살표", L + bw2 + 80000, by2 + bh2 // 2, W - 2 * bw2 - 160000)
+s.box("손실", L + bw2 + 80000, by2 + bh2 // 2 - 270000, W - 2 * bw2 - 160000, 240000, [para("매처·안테나 손실", 1200, SUB, algn="ctr")])
+s.box("전력 흐름 설명", L, by2 + bh2 + 40000, W, 250000, [
+    para("교재 p.135: P_{abs}는 RF 전력에서 매처와 안테나의 손실을 뺀 순수 플라즈마 공급 전력이다.", 1200, SUB, algn="ctr")])
+qy = by2 + bh2 + 340000
 s.box("입출력 상자", L, qy, W, BOT - qy, [
     para("입력 수가 출력 수 이상인 것은 독립 조절의 필요조건일 뿐이다. 각 입력이 n̄_{w}와 ρ를 어떻게 바꾸는지는 ρ가 없는 0D 모델로 정할 수 없다.", 1250, aft=0)],
       fill="F4F6FA", inset=109728, anchor="ctr")
 s.pagenum()
 s.write(7)
 notes(7, "[대본 · 3:15–4:05 / 50초]",
-      "두 코일 전류는 복소수 두 개이므로 크기 둘, 위상 둘입니다. 공통 위상은 시간 원점을 어디에 두느냐의 문제라 시간 평균량에 영향이 없어서, "
-      "독립 변수는 상대 진폭 k, 상대 위상 φ, 그리고 전체 크기 세 개입니다. 실제로는 전류 크기 대신 총 공급 전력을 지정합니다. "
-      "발전기 출력은 정합기와 코일에서 일부 잃은 뒤 플라즈마에 흡수되고, 그 비율은 k, φ와 플라즈마 상태에 따라 달라집니다. "
+      "두 코일 전류는 복소수 두 개이므로 크기 둘, 위상 둘입니다. 공통 위상은 시간 원점을 어디에 두느냐의 문제라 시간 평균 전력에 영향이 없어서, "
+      "독립 변수는 상대 진폭 k, 상대 위상 φ, 그리고 전체 크기 세 개입니다. 실제로는 전류 크기 대신 RF 전원의 총 전력을 지정합니다. "
+      "교재에서 P_abs는 RF 전력에서 매처와 안테나의 손실을 뺀 값이고, 그 비율은 k, φ와 플라즈마 상태에 따라 달라집니다. "
       "정리하면 입력은 셋, 맞출 출력은 평균 밀도와 밀도비 둘입니다. 입력이 출력보다 많은 것은 필요조건일 뿐이고, 두 출력을 실제로 따로 움직일 수 있는지는 ρ가 없는 0D로는 판단할 수 없습니다.",
-      "식 (1.9) I = I₀[1, ke^(jφ)]ᵀ, k = |I_out|/|I_in|, φ = arg I_out − arg I_in. 포트 전력 P_port = (I₀²/2)Re[aᴴZa], a = [1, ke^(jφ)]ᵀ이므로 "
-      "I₀ = √(2P_port/Re(aᴴZa)) (분모가 양수이고 k, φ를 구동기에서 실현할 수 있을 때). P_tot = P_match,loss + P_port, P_port = P_coil,loss + P_abs. "
-      "정진욱 (2026) §2.4 식 (2.66)–(2.68). 상세: 부록 A4–A5.")
+      "I = I_0[1, ke^(jφ)]ᵀ, k = |I_out|/|I_in|, φ = arg I_out − arg I_in (부록 A4). "
+      "교재 p.135: P_abs는 RF 전력이 아닌 순수 플라즈마에 공급되는 전력이고, RF 전력에서 매처와 안테나(또는 전극)의 손실을 뺀 값이다. "
+      "P_tot에서 I_0를 정하는 관계(코일 단자 임피던스, 매처·안테나 손실)는 0D가 아니라 2D 장 해석과 함께 다룬다(부록 A5).")
 
-# ===================== 7. 두 코일의 결합 (slide8.xml) =====================
+# ===================== 7. 0D의 한계와 2D 모델의 필요성 (slide10.xml) =====================
+# slide10에는 노트가 없으므로 기존 노트 하나를 복사해 연결한다
+nn = "notesSlide50.xml"
+shutil.copy(f"{U}/ppt/notesSlides/notesSlide6.xml", f"{U}/ppt/notesSlides/{nn}")
+open(f"{U}/ppt/notesSlides/_rels/{nn}.rels", "w", encoding="utf-8").write(
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+    '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="../slides/slide10.xml"/>'
+    '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesMaster" Target="../notesMasters/notesMaster1.xml"/>'
+    '</Relationships>')
+ctp = f"{U}/[Content_Types].xml"
+ct = open(ctp, encoding="utf-8").read()
+if nn not in ct:
+    ct = ct.replace("</Types>", f'<Override PartName="/ppt/notesSlides/{nn}" ContentType="application/vnd.openxmlformats-officedocument.presentationml.notesSlide+xml"/></Types>')
+    open(ctp, "w", encoding="utf-8").write(ct)
+rp10 = f"{U}/ppt/slides/_rels/slide10.xml.rels"
+r10 = open(rp10, encoding="utf-8").read()
+if nn not in r10:
+    r10 = r10.replace("</Relationships>", f'<Relationship Id="rIdN1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesSlide" Target="../notesSlides/{nn}"/></Relationships>')
+    open(rp10, "w", encoding="utf-8").write(r10)
+
 s = Slide()
-s.frame("두 코일은 플라즈마를 통해 결합한다", "코일 포트  ·  2포트 임피던스와 상호 결합",
-        "두 코일은 직접 결합과 플라즈마를 통한 결합으로 묶여 있고, k는 흡수 전력의 비가 아니다.",
-        "정진욱 (2026) §2.3.4 식 (2.54)–(2.57)의 두 코일 확장 [유도]. 등가회로이므로 공간 분포는 나타내지 않는다. 부록 A14–A15.")
-fw, fh = s.eq("fig_dual_mio.png", L, TOP, emu_per_px=1550)
-s.box("범례", L, TOP + fh + 20000, fw + 150000, 230000, [para(LEGEND, 1050, SUB)])
-rx = L + fw + 200000
-rw = R - rx
-s.box("단자 제목", rx, TOP, rw, 280000, [para("코일 포트의 단자 관계", 1400, HEAD, True)])
-w, h = s.eq("eq_vin.png", rx + 91440, TOP + 330000, emu_per_px=1200)
-w2, h2 = s.eq("eq_vout.png", rx + 91440, TOP + 330000 + h + 50000, emu_per_px=1200)
-zy = TOP + 330000 + h + 50000 + h2 + 120000
-w, h = s.eq("eq_zio.png", rx + 91440, zy, emu_per_px=1200)
-sy = zy + h + 50000
-s.box("성분 기호", rx, sy, rw, 470000, [
-    para("jωM_{io}: 두 코일 사이의 직접 상호 유도", 1200, SUB, bullet=True, aft=120),
-    para("ω^{2}M_{ip}M_{op}/Z_{p}: 같은 플라즈마 고리를 거친 결합", 1200, SUB, bullet=True, aft=0)])
-cy = max(sy + 470000, TOP + fh + 250000) + 80000
-ch2 = BOT - cy
-s.card("비대각 카드", L, cy, cw, ch2, [
-    para("비대각 성분이 뜻하는 것", 1400, HEAD, True, aft=300),
-    para("한 코일의 전류를 바꾸면 다른 코일에 필요한 단자 전압이 바뀐다.", 1250, bullet=True, aft=200),
-    para("전원과 정합기로 구동하면 다른 코일의 실제 전류도 함께 바뀐다.", 1250, bullet=True, aft=0)])
-s.card("k 해석 카드", L + cw + 182880, cy, cw, ch2, [
-    para("k는 흡수 전력의 비가 아니다", 1400, HEAD, True, aft=300),
-    para("P_{abs}에 간섭항이 있어 안쪽·바깥쪽 몫으로 나눌 수 없다.", 1250, bullet=True, aft=200),
-    para("Z_{p}가 밀도와 충돌 주파수에 따라 바뀌어, 같은 k, φ에서도 포트 조건이 달라진다.", 1250, bullet=True, aft=0)])
+s.frame("0D의 한계와 2D 모델의 필요성", "0D 모델의 적용 범위  ·  교재 §2.4, §1.10",
+        "ρ는 n(r, z)에서만 정해지므로, 코일 전류에서 n(r, z)까지를 2D로 풀어야 한다.",
+        "정진욱 (2026) §2.4 p.137, §1.10 pp.62–64 식 (1.75)–(1.83). χ_{01}: J_{0}의 첫 영점. T_{e}(r, z)는 팀 2D 모델에서 구한다.")
+ch7 = 2300000
+s.card("0D 카드", L, TOP, cw, ch7, [
+    para("0D가 주는 것과 주지 않는 것", 1400, HEAD, True, aft=300),
+    para("입자 균형 (2.70)과 전력 균형 (2.73)이 주는 T_{e}, n_{0}는 공간 평균된 값이다 (교재 p.137).", 1250, bullet=True, aft=180),
+    para("r, z가 없으므로 n_{c}, n_{edge}, ρ를 정의할 수 없다.", 1250, bullet=True, aft=180),
+    para("코일은 P_{abs} = ∫p_{e} dV 하나로만 들어간다.", 1250, bullet=True, aft=180),
+    para("쓰임: 2D 계산의 초기값(T_{e}, n_{0})과 부피 수지 점검", 1250, bullet=True, aft=0)])
+x2 = L + cw + 182880
+s.card("확산 카드", x2, TOP, cw, ch7, [para("T_{e}가 균일하면 형상은 고정된다", 1400, HEAD, True)])
+w, h = s.eq("eq_diff.png", x2 + 109728, TOP + 380000, emu_per_px=1350, center_w=cw - 219456)
+s.box("확산 설명", x2 + 109728, TOP + 380000 + h + 30000, cw - 219456, 240000, [
+    para("정상 상태 확산 방정식 (1.76): 생성 = 확산 손실", 1200, SUB, algn="ctr", aft=0)])
+my = TOP + 380000 + h + 330000
+w, h = s.eq("eq_mode.png", x2 + 109728, my, emu_per_px=1300, center_w=cw - 219456)
+s.box("모드 설명", x2 + 109728, my + h + 60000, cw - 219456, TOP + ch7 - (my + h + 60000) - 40000, [
+    para("ν_{iz}가 어디서나 같으면(T_{e} 균일) 해는 용기 크기 R, L만으로 정해지는 기본 모드다 (1.79), (1.83). 이때 ρ는 k, φ와 무관하다.", 1200, aft=0)])
+fy7 = TOP + ch7 + 100000
+s.box("사슬 제목", L, fy7, W, 280000, [para("2D (r, z) 모델이 이어야 할 사슬", 1400, HEAD, True)])
+chain(s, fy7 + 330000, 600000, [("코일 전류", "I_{0}, k, φ"), ("유도 전기장", "E_{θ}(r, z)"), ("흡수 옴전력", "p_{e}(r, z)"),
+                                 ("전자온도", "T_{e}(r, z)"), ("이온화", "G(r, z)"), ("밀도", "n(r, z) → ρ")], "2D 사슬", gap_min=200000)
+ny = fy7 + 330000 + 600000 + 60000
+s.box("사슬 설명", L, ny, W, BOT - ny, [
+    para("G = n n_{g}K_{iz}(T_{e}): 교재 식 (2.69)의 국소형. n과 T_{e}가 바뀌면 σ_{p}와 E_{θ}도 바뀌므로 사슬을 반복해 맞춘다.", 1200, SUB, aft=80),
+    para("코일 단자 임피던스와 전류 크기 I_{0}도 이 장 해석에서 함께 정한다.", 1200, SUB, aft=0)])
 s.pagenum()
-s.write(8)
-notes(8, "[대본 · 4:05–4:55 / 50초]",
-      "두 코일의 단자 관계는 2×2 임피던스로 씁니다. 같은 변압기 모델에서 비대각 성분은 두 코일 사이의 직접 상호 유도와, 같은 플라즈마 고리를 거친 결합의 합입니다. "
-      "그래서 한 코일의 전류를 바꾸면 다른 코일에 필요한 전압이 바뀌고, 실제 구동에서는 다른 코일의 전류도 바뀝니다. "
-      "또 흡수 전력에는 간섭항이 있어 안쪽과 바깥쪽 몫으로 나눌 수 없으므로 k는 흡수 전력의 비가 아니고, Z_p는 플라즈마 상태에 따라 바뀝니다. "
-      "이 등가회로는 공간 분포를 담지 않으므로, 이 결합이 중앙과 가장자리에 어떻게 나타나는지는 2D 모델에서 봐야 합니다.",
-      "V_in = (R_i + jωL_i)I_in + jωM_io I_out − jωM_ip I_p에 I_p = jω(M_ip I_in + M_op I_out)/Z_p를 대입하면 "
-      "Z_ii = R_i + jωL_i + ω²M_ip²/Z_p, Z_io = jωM_io + ω²M_ip M_op/Z_p를 얻는다. Z_io = Z_oi(상호성). jωM_io 항의 부호는 권선 방향에 따른다. "
-      "정진욱 (2026) §2.3.4 식 (2.54)–(2.57)의 두 코일 확장. 2D 모델에서는 같은 단자 관계를 장 해(코일 전류가 만드는 E_θ와 플라즈마 전류 분포)로 계산해 이 식과 연결한다. 상세: 부록 A14–A15.")
+s.write(10)
+notes(10, "[대본 · 4:05–5:05 / 60초]",
+      "0D 모델이 무엇을 주고 무엇을 주지 못하는지 정리하겠습니다. 입자 균형은 전자온도를, 전력 균형은 밀도를 주는데, 교재도 밝히듯 이것은 공간 평균된 값입니다. "
+      "r과 z가 없으니 중앙과 가장자리, 그리고 밀도비를 정의할 수 없고, 코일은 흡수 전력 하나로만 들어옵니다. "
+      "그렇다면 0D의 가정을 그대로 공간으로 넓히면 어떨까요. 교재의 확산 방정식에서 이온화 주파수가 어디서나 같다고 두면, 해는 용기 크기만으로 정해지는 기본 모드 하나뿐입니다. "
+      "이때는 코일을 어떻게 구동해도 밀도비가 바뀌지 않습니다. 밀도비를 바꾸려면 전자온도와 이온화가 흡수 위치를 따라 공간적으로 달라져야 하고, "
+      "이것을 보려면 코일 전류에서 유도 전기장, 흡수 전력, 전자온도, 이온화, 밀도까지를 2D로 이어서 풀어야 합니다.",
+      "교재 §2.4 p.137: 전력 균형 방정식과 입자 균형 방정식으로 공간 평균된 플라즈마 밀도와 전자온도를 구한다. 단순 모델에서는 T_e가 밀도와 무관하지만, 실제로는 두 식이 결합되어 T_e가 밀도·압력·면적 대 부피비의 함수다. "
+      "§1.10 p.62 식 (1.75) ∂n/∂t + ∇·Γ = G − L, Γ = −D_a∇n, G = nν_iz, 내부 L = 0 → 식 (1.76). p.63: ν_iz = n_g⟨σ_iz v⟩가 위치에 따라 변하지 않는 것은 전자온도가 공간에서 일정한 경우에 해당. "
+      "정상 상태 −D_a∇²n = ν_iz n, 벽 n = 0에서 평판 해 n_0cos(πx/l) (1.79), 원통 반경 해 n_0J_0(χ_01 r/R) (1.83), χ_01 ≈ 2.41. "
+      "유한 원통은 두 해의 곱이고 고유값 조건 ν_iz/D_a = (χ_01/R)² + (π/L)²가 T_e를 정한다(0D 입자 균형과 같은 역할). 봄 경계를 써도 형상은 용기 크기가 정하고 코일과 무관하다. "
+      "사슬의 국소 이온화 G = n n_g K_iz(T_e)는 식 (2.69)의 좌변을 위치별로 쓴 것. T_e(r, z)를 구하는 전자 에너지 식과 장 방정식은 교재 범위 밖이며 팀 2D 모델(이론 정리 4–5장)에서 다룬다. "
+      "코일 단자 임피던스(2포트)는 2D 장 해석에서 얻는다(이론 정리 5.4절, 부록 A14–A15).")
 print("built")
