@@ -29,6 +29,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from hybrid import control, export, loop, plots_control, plots_point, plots_validate, timing, validate, verify  # noqa: E402
 from hybrid.config import Config  # noqa: E402
 from hybrid.coupled import solve_point  # noqa: E402
+from hybrid.em_field import port_drive  # noqa: E402
 
 OUT = Path(__file__).resolve().parent.parent / "figures" / "hybrid"
 
@@ -50,6 +51,8 @@ def cmd_point(a) -> None:
     print(f"n_c = {m.n_c:.4e}, n_edge = {m.n_edge:.4e}, n̄_w = {m.n_bar:.4e} m^-3, ρ = {m.rho:.4f}")
     print(f"I_0 = {sol.heating.I0:.3f} A, P_abs = {sol.heating.P_abs:.1f} W, "
           f"입자 수지 오차 {b['particle_error']:.1e}, 에너지 수지 오차 {b['energy_error']:.1e}")
+    d = port_drive(sol.unit, sol.heating, cfg)
+    print(f"전원별 전력 안 {d['P_in']:.1f} W / 밖 {d['P_out']:.1f} W, 코일 전압 안 {d['V_in']:.0f} V / 밖 {d['V_out']:.0f} V (진폭)")
     print("저장:", OUT / f"{tag}.png", *[p.name for p in paths.values()])
 
 

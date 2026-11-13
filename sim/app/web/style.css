@@ -22,6 +22,7 @@
   color: var(--ink);
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }   /* display 를 따로 준 요소(결과 카드 등)도 hidden 이면 확실히 숨긴다 */
 body { margin: 0; background: var(--bg); }
 h1, h2, p, figure, dl, dd, fieldset { margin: 0; padding: 0; border: 0; }
 button, input, select { font: inherit; color: inherit; }
@@ -115,6 +116,7 @@ button:disabled { opacity: 0.55; cursor: progress; }
 .small { display: grid; gap: 7px; border-top: 1px solid var(--line); padding-top: 12px; }
 .small div { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
 .small dd { font-weight: 700; font-variant-numeric: tabular-nums; font-size: 14px; }
+.drive-warn { font-size: 12.5px; font-weight: 600; color: var(--warn); background: #fbeee4; border-radius: 7px; padding: 8px 10px; }
 .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; }
 .dot.in { background: var(--coil-in); }
 .dot.out { background: var(--coil-out); }

@@ -128,5 +128,8 @@ python sim/run_hybrid.py all
 ## 역문제와 GUI
 
 `inverse.py` 의 `solve_targets` 는 목표 (n̄_w, ρ) 를 만드는 (P_tot, k) 를 찾는다(위상 고정).
+빠른 풀이(Broyden)가 닿지 못하면 k 전 범위를 훑어 다시 찾는다. φ = 180° 에서는 평균을 고정한 ρ(k) 가
+k ≈ 0.3 에서 봉우리, k ≈ 3.3 에서 골을 가져 단조가 아니기 때문이다(`docs/23_코드_검토_2026-11-13.md` 3.1절).
+`em_field.port_drive` 는 전원별 전력과 코일 전압을 준다. 위상차가 있으면 한쪽 전원의 전력이 음수가 될 수 있다(같은 문서 4.4절).
 이것을 화면에서 쓰는 GUI 는 `sim/app/` 에 있다: `python sim/app/server.py` (설명: `sim/app/README.md`).
 

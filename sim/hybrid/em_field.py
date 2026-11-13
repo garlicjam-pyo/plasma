@@ -129,3 +129,19 @@ class EMSolver:
         p_abs = 0.5 * unit.re_sigma * np.abs(E[: g.Nzp]) ** 2
         S = np.sum(p_abs * g.dz[: g.Nzp, None], axis=0)
         return Heating(I0, E, p_abs, S, 0.5 * I0**2 * R_eff, 0.5 * I0**2 * R_c, P_port)
+
+
+def port_drive(unit: UnitFields, heat: Heating, cfg: Config) -> dict:
+    """코일 단자에서 본 구동 조건: 코일별 전압 진폭 [V] 과 각 전원이 내야 하는 유효 전력 [W].
+
+    V = Z_port·I,  P_a = ½ Re(V_a I_a*).  두 값의 합은 포트 전력 P_port 와 같다.
+    한쪽이 음수이면 그 전원은 전력을 흡수해야 한다는 뜻이다(상호 결합으로 다른 코일에서 넘어오는 전력).
+    독립 전원 2대로는 만들 수 없는 조건이고, 전원 1대 + 무효 소자 분배기라면 합만 맞으면 된다.
+    """
+    k, phi = cfg.op.effective_k_phi()
+    I = heat.I0 * np.array([1.0, k * np.exp(1j * phi)])
+    V = unit.Z_port @ I
+    P = 0.5 * np.real(V * np.conj(I))
+    return dict(P_in=float(P[0]), P_out=float(P[1]), V_in=float(abs(V[0])), V_out=float(abs(V[1])),
+                V_series=float(abs(V[0] + V[1])))            # 두 코일을 직렬로 묶었을 때의 단자 전압
+

@@ -19,6 +19,7 @@ from pathlib import Path
 import numpy as np
 
 from .coupled import Solution
+from .em_field import port_drive
 from .metrics import ring_average
 
 # 파일에 쓰는 열 이름과 단위 (COMSOL 쪽 내보내기 설정을 이 표에 맞춘다)
@@ -64,6 +65,7 @@ def save_solution(sol: Solution, out_dir: Path, tag: str) -> dict:
         config=asdict(cfg), converged=sol.converged, metrics=asdict(sol.metrics), balance=sol.balance,
         heating=dict(I0_A=heat.I0, P_abs_W=heat.P_abs, P_coil_W=heat.P_coil, P_port_W=heat.P_port,
                      efficiency=heat.P_abs / cfg.op.P_tot),
+        drive={f"{k}_{'W' if k[0] == 'P' else 'V'}": v for k, v in port_drive(sol.unit, heat, cfg).items()},   # 전원별 전력, 코일 전압
         Z_port_ohm=sol.unit.Z_port, R_plasma_ohm=sol.unit.R_pl.real, timing=sol.timing, columns=COLUMNS)
     paths["summary.json"].write_text(json.dumps(_jsonable(summary), ensure_ascii=False, indent=2), encoding="utf-8")
     write_csv(paths["radial.csv"], ["r_m", "n0_m3", "n_wafer_m3", "Te_V", "S_W_m2", "G_m2s", "nuL_1s"],

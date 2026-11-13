@@ -39,6 +39,12 @@ function render() {
   $("r-pabs").textContent = `${result.heating.P_abs.toFixed(0)} W (${(100 * result.heating.efficiency).toFixed(0)} %)`;
   $("r-I").textContent = `${fmt(result.heating.I_in, 3)} / ${fmt(result.heating.I_out, 3)} A`;
   $("r-te").textContent = `${result.Te_range[0].toFixed(2)} – ${result.Te_range[1].toFixed(2)} V`;
+  // 구동부: 이중 코일일 때만 전원별 값이 의미가 있다. 음수 전력은 그 전원이 전력을 흡수해야 한다는 뜻이다.
+  const d = result.drive, dual = result.inputs.coil_mode === "dual";
+  $("r-port").textContent = dual ? `${d.P_in.toFixed(0)} / ${d.P_out.toFixed(0)} W` : "–";
+  const single = result.inputs.coil_mode === "single_series" ? d.V_series : d.V_in;   // 직렬은 두 코일 전압의 합, 안쪽만이면 안쪽 코일 전압
+  $("r-volt").textContent = dual ? `${fmt(d.V_in / 1000, 2)} / ${fmt(d.V_out / 1000, 2)} kV` : `${fmt(single / 1000, 2)} kV`;
+  $("r-drive-warn").hidden = !(dual && Math.min(d.P_in, d.P_out) < 0);
   const showTarget = state.mode === "control";
   const diff = (now, goal) => `목표 ${goal} (차 ${(100 * (now / goal - 1)).toFixed(1)} %)`;
   $("r-n-target").textContent = showTarget ? diff(m.n_bar * 1e-16, state.target.n.toFixed(2)) : "";
@@ -75,7 +81,9 @@ async function simulate() {
     const result = await api.simulate(state.inputs);
     if (id !== state.request) return;                  // 그사이 새 요청이 나갔으면 이 응답은 버린다
     accept(result);
-    setStatus(`계산 완료: ${(result.seconds * 1000).toFixed(0)} ms, 반복 ${result.outer_iters}회${result.converged ? "" : " (수렴하지 못함)"}`,
+    // 수렴하지 못한 결과는 대개 전력이 너무 낮거나 두 코일의 장이 상쇄되어 유도 방전이 유지되지 않는 조건이다
+    setStatus(result.converged ? `계산 완료: ${(result.seconds * 1000).toFixed(0)} ms, 반복 ${result.outer_iters}회`
+      : "수렴하지 못함: 이 조건에서는 모델의 유도 방전이 유지되지 않습니다. 전력을 올리거나 위상차를 줄여 보세요. 아래 값은 믿을 수 없습니다.",
       result.converged ? "" : "error");
     render();
   } catch (err) { setStatus(err.message, "error"); }
@@ -110,14 +118,16 @@ async function solveTargets() {
 }
 
 async function loadBand() {                            // 도달 가능 영역은 몇 초 걸리므로 따로 불러 와 나중에 덧그린다
-  state.band = null;
-  if (state.inputs.coil_mode !== "dual") { render(); return; }
-  const key = `${state.inputs.p_mtorr}|${state.inputs.phi_deg}|${state.inputs.transport}`;
-  state.bandKey = key;
+  if (state.mode !== "control") return;                // 목표 선택 판에서만 쓰므로 직접 조정 중에는 계산하지 않는다
+  const i = state.inputs;
+  const key = `${i.coil_mode}|${i.p_mtorr}|${i.phi_deg}|${i.transport}`;
+  if (state.bandKey === key) return;                   // 같은 조건의 영역을 이미 받았거나 받는 중
+  state.bandKey = key; state.band = null;
+  if (i.coil_mode !== "dual") { render(); return; }
   try {
-    const band = await api.reachable(state.inputs);
+    const band = await api.reachable(i);
     if (state.bandKey === key) { state.band = band; render(); }
-  } catch (err) { /* 영역 표시는 보조 정보라 실패해도 조용히 넘어간다 */ }
+  } catch (err) { if (state.bandKey === key) state.bandKey = null; }   // 보조 정보라 실패해도 조용히 넘어가고 다음에 다시 시도한다
 }
 
 async function showJacobian() {
@@ -146,6 +156,7 @@ function setMode(mode) {
     $(`panel-${name}`).hidden = name !== mode;
   }
   render();
+  loadBand();                                          // 직접 조정에서 조건을 바꾸고 돌아왔으면 영역을 새로 받는다
 }
 
 function setTarget(n, rho) {
