@@ -7,7 +7,7 @@
 
 ```bash
 python -m pip install -r requirements.txt   # numpy, scipy, matplotlib (처음 한 번)
-python sim/app/server.py                    # http://127.0.0.1:8765 가 브라우저에 열린다
+python sim/app/server.py                    # http://localhost:8765 가 브라우저에 열린다
 python sim/app/server.py --port 9000 --no-browser
 ```
 
@@ -25,6 +25,9 @@ python sim/app/server.py --port 9000 --no-browser
 | 프론트엔드 | `web/js/api.js` | 백엔드 호출 |
 | 프론트엔드 | `web/js/app.js` | 상태와 동작 (조작 → 요청 → 다시 그리기) |
 | 프론트엔드 | `web/js/chamber.js`, `charts.js`, `draw.js` | 챔버 단면, 그래프, 목표 선택 판 그리기 |
+
+다른 컴퓨터에 설치하거나, 한 컴퓨터에서 켜고 같은 네트워크의 다른 컴퓨터에서 접속하는 방법(`--host 0.0.0.0`),
+문제 해결은 `docs/24_GUI_설치_접속_안내.md` 에 있다. 설계 선택의 이유는 `docs/25_모델과_코드_설명.md`.
 
 ## 화면
 

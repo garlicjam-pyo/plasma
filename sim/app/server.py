@@ -2,6 +2,7 @@
 
     python sim/app/server.py            # http://127.0.0.1:8765 에서 실행하고 브라우저를 연다
     python sim/app/server.py --port 9000 --no-browser
+    python sim/app/server.py --host 0.0.0.0     # 같은 네트워크의 다른 컴퓨터에서도 접속 (인증 없음: 믿을 수 있는 네트워크에서만)
 
 역할 분담
   server.py   : HTTP 요청을 받아 정적 파일(web/)을 주거나 /api/* 를 service 로 넘긴다
@@ -81,14 +82,38 @@ class Handler(BaseHTTPRequestHandler):
             super().log_message(fmt, *args)
 
 
+def _lan_addresses() -> list:
+    """이 컴퓨터가 네트워크에서 쓰는 주소들 (다른 컴퓨터가 접속할 때 쓸 주소를 안내하기 위함)."""
+    import socket
+    found = set()
+    try:                                                             # 밖으로 나가는 길에 쓰이는 주소 (실제로 보내지는 않는다)
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as probe:
+            probe.connect(("10.255.255.255", 1))
+            found.add(probe.getsockname()[0])
+    except OSError:
+        pass
+    try:
+        found.update(info[4][0] for info in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET))
+    except OSError:
+        pass
+    return sorted(a for a in found if not a.startswith("127."))
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="독립 제어 GUI 서버")
     ap.add_argument("--port", type=int, default=8765)
+    ap.add_argument("--host", default="127.0.0.1",
+                    help="접속을 받을 주소. 기본값은 이 컴퓨터만(127.0.0.1). 0.0.0.0 이면 같은 네트워크의 다른 컴퓨터도 접속할 수 있다")
     ap.add_argument("--no-browser", action="store_true", help="브라우저를 자동으로 열지 않는다")
     a = ap.parse_args()
-    server = ThreadingHTTPServer(("127.0.0.1", a.port), Handler)     # 이 컴퓨터에서만 접속 가능
-    url = f"http://127.0.0.1:{a.port}"
+    server = ThreadingHTTPServer((a.host, a.port), Handler)
+    local = a.host in ("127.0.0.1", "localhost")
+    url = f"http://localhost:{a.port}"                               # WSL 에서는 127.0.0.1 보다 localhost 가 잘 이어진다
     print(f"독립 제어 GUI: {url}  (끝내려면 Ctrl+C)")
+    if not local:
+        for addr in _lan_addresses():
+            print(f"  다른 컴퓨터에서: http://{addr}:{a.port}")
+        print("  주의: 로그인 절차가 없습니다. 집·연구실처럼 믿을 수 있는 네트워크에서만 쓰세요.")
     if not a.no_browser:
         threading.Timer(0.6, webbrowser.open, args=(url,)).start()
     try:
