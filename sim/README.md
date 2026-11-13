@@ -18,6 +18,7 @@ python sim/presentation1_figures.py                # 1차 발표 그림 3종 (R 
 python sim/theory_note_check.py                    # 팀 이론 정리 문서(11-09)의 압력별 수치 재현, 자화 수송 표(3 G 포함), 교차 성분별 거리
 python sim/k_operating_point.py 20                 # 운전점(중앙 몫 x)에 따른 J 변화, R = 1의 J로 한 선형 예측 오차, 고정 J 반복과 도달 한계
 python sim/feedback_demo.py                        # 바깥 루프 되먹임 예: 피드포워드 + 적분 보정, K̂ 오차 3경우 (조정절차 7절)
+python sim/run_hybrid.py all                       # 전자기장 2D + 수송 반경 1D 자기일관 모델: 검산, 운전점, J_ctrl, 등평균 스캔, 지도, 타이밍 (sim/hybrid/README.md)
 ```
 
 ## 로드맵
@@ -30,6 +31,7 @@ python sim/feedback_demo.py                        # 바깥 루프 되먹임 예
 | M2a | 2-영역 0D 모델 (`two_zone_icp.py`, `run_two_zone.py`, `presentation1_estimates.py`) | M1 의 영역별 전력, 압력 | $n_c$, $n_e$, $T_e$, $\bar n$, $R$, 응답 행렬 $J$, 압력별 R 범위 | 국소/비국소 가열(C6)·확산(C7)을 넣은 밀도비 응답, 가설 H1 | ✅ KC20 비공진 급전 전류 ±9% (공진 상태·절대 밀도는 못 맞춤) |
 | M4 | 측정 처리 (`jacobian_fit.py`) | FHP 섭동 실험 CSV | a0/a1, J (ln I_tot, ln P 기준), 누설, κ(J), RGA | 측정에서 J (V3) | ✅ 회귀·J 산출, ☐ 섭동 시퀀스 생성 (B16) |
 | M2 | 2D (r, z) 확산 모델 (V2) | 영역별 소스 분포, 간격 L 6–12 cm, 압력, 체적 손실 | $n(r,z)$, 확산 누설, 측정 위치 환산 계수 | 코일 전류 → 밀도 분포 (확산 결합 C7), 가설 H2·H5 | ☐ (COMSOL vs Python 유한차분 결정 후, B09) |
+| M3a | 하이브리드 자기일관 모델 (`hybrid/`, `run_hybrid.py`): 전자기장 2D + 수송 반경 1D | 형상, 압력, (P_tot, k, φ) | $E_\theta(r,z)$, $p_{abs}$, $T_e(r)$, $n_e(r)$, $(\bar n_w, \rho)$, $J_{ctrl}$ | 1차 발표 덱 7–13쪽 계산 흐름의 구현, 제어 가능성 판정 | ✅ 검산 통과, 운전점 0.14 s. 2D 수송 검증판·COMSOL 비교는 ☐ |
 | M3 | (선택) 2D 유체·전자기 결합 모델 | 챔버 형상, 코일 구성 | 자기일관 $E$, $T_e$, $n$ | 비국소 가열(C6), 표피 효과 비선형성(C3) | ☐ |
 
 M2의 첫 버전은 "가열 위치 = 이온화 위치(국소)"와 "전자 온도 균일(비국소)"의 두 극한을 모두 계산해, 실제 장비가 두 극한 사이 어디쯤인지에 따라 독립성이 어떻게 달라지는지를 보여 주는 것을 목표로 한다. M3는 COMSOL 등 학교 도구 사용 가능 여부에 따라 결정한다.

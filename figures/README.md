@@ -26,3 +26,17 @@
 | `two_zone_sensitivity.csv` | 가정별 민감도 | `sim/run_two_zone.py sensitivity` |
 
 그림의 수치를 바꾸면 해당 스크립트를 다시 실행해 PNG와 CSV를 함께 갱신한다. 일정 그림은 일정을 바꿀 때 다시 내보낸다.
+
+## 하이브리드 자기일관 모델 (`hybrid/`)
+
+전자기장 2D + 수송 반경 1D 모델의 결과. 모두 `python sim/run_hybrid.py <부명령>` 으로 다시 만든다 (설명: `sim/hybrid/README.md`).
+
+| 파일 | 내용 | 부명령 |
+|---|---|---|
+| `hybrid/check.csv` | 자체 검산 8항목 (포인팅, 상반성, 수지, T_e 균일 극한의 해석해) | `check` |
+| `hybrid/point_dual_P300_k1_phi0.png`, `_summary.json`, `_radial.csv`, `_field_rz.csv`, `_convergence.csv` | 기준 운전점의 장·가열·밀도 지도, 웨이퍼 지표, 수렴 이력과 그 데이터 | `point` |
+| `hybrid/jacobian_P300_k1_phi0.png`, `.csv`, `_dual.json`, `_single.json` | J_ctrl (이중 코일 2×3, 단일 코일 2×1), 특이값, 형상 감도 | `jacobian` |
+| `hybrid/iso_mean_scan.png`, `.csv` | n̄_w 를 고정하고 k 를 훑었을 때의 ρ, 필요한 P_tot, 분포 모양 (φ = 0, 90, 180°) | `iso` |
+| `hybrid/response_map.png`, `.csv` | P_tot 고정, (k, φ) 평면의 ρ 지도와 n̄_w 등고선 | `map` |
+| `hybrid/timing.png`, `.csv` | 격자별 계산 시간, 예산 대비 마진, 격자 오차 | `timing` |
+
