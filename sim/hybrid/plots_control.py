@@ -158,11 +158,15 @@ def plot_margin(rows: list, path: Path) -> None:
         ax.text(3.98, level + 1.5, text, color=MUTED, ha="right", fontsize=8)
     T_worst = max(lp.T_DELAY)
     near_one = [r for r in rows if r["lam_max"] <= 1.1]      # 이득이 거의 그대로인 경우는 한데 묶어 표시
+    labelled = 0
     for r in rows:
         pm = lp.margins(complex(r["lam_max"]), T_worst)["pm"]
         ax.plot(r["lam_max"], pm, "o", color=INK, ms=5)
-        if r["lam_max"] > 1.1:
-            ax.annotate(r["scenario"], (r["lam_max"], pm), xytext=(8, 10), textcoords="offset points", fontsize=9)
+        if r["lam_max"] > 1.1:                               # 가까운 점의 글자가 겹치지 않게 위·아래로 번갈아 둔다
+            offset = (8, 12) if labelled % 2 == 0 else (-10, -18)
+            ax.annotate(r["scenario"], (r["lam_max"], pm), xytext=offset, textcoords="offset points", fontsize=9,
+                        ha="left" if labelled % 2 == 0 else "right")
+            labelled += 1
     if near_one:
         slow = max(near_one, key=lambda r: r["settle_s"])
         ax.annotate(f"그 밖의 {len(near_one)}가지: λ_max ≈ 1 (여유는 그대로,\n대신 느려짐. 최대 설정 시간 {slow['settle_s']:.0f} s: {slow['scenario']})",
