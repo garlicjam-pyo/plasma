@@ -125,3 +125,8 @@ python sim/run_hybrid.py all
 위상을 바꾸면 k 의 형상 이득이 3배가 되므로 J 를 위상별로 따로 두어야 한다(이득 스케줄링).
 지연과 교차 주파수는 docs/조정절차.md 의 가정값이며 장비에서 잰 값이 아니다.
 
+## 역문제와 GUI
+
+`inverse.py` 의 `solve_targets` 는 목표 (n̄_w, ρ) 를 만드는 (P_tot, k) 를 찾는다(위상 고정).
+이것을 화면에서 쓰는 GUI 는 `sim/app/` 에 있다: `python sim/app/server.py` (설명: `sim/app/README.md`).
+

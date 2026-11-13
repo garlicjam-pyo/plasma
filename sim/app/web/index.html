@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ICP 밀도 독립 제어</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1>이중 코일 ICP 밀도 독립 제어</h1>
+    <p id="status" class="status" role="status">서버에 연결하는 중…</p>
+  </header>
+
+  <main class="layout">
+    <!-- ============ 왼쪽: 조작 ============ -->
+    <section class="controls" aria-label="조작">
+      <div class="mode-switch" role="tablist">
+        <button id="tab-control" role="tab" aria-selected="true" aria-controls="panel-control">목표로 맞추기</button>
+        <button id="tab-manual" role="tab" aria-selected="false" aria-controls="panel-manual">직접 조정</button>
+      </div>
+
+      <!-- 목표로 맞추기: 원하는 평균 밀도와 밀도비를 정하면 입력을 찾아 준다 -->
+      <div id="panel-control" role="tabpanel">
+        <p class="hint">판 위의 보라색 표적을 끌어 원하는 평균 밀도와 밀도비를 정하세요. 손을 떼면 그 목표를 만드는 전력과 전류비를 찾습니다.</p>
+        <canvas id="pad" class="pad" width="320" height="250" aria-label="목표 선택 판: 가로 평균 밀도, 세로 밀도비"></canvas>
+        <div class="pair">
+          <label>평균 밀도 <span class="unit">10¹⁶ m⁻³</span>
+            <input id="t-n" type="number" step="0.1" min="1" max="15">
+          </label>
+          <label>밀도비 ρ
+            <input id="t-rho" type="number" step="0.01" min="0.4" max="3.2">
+          </label>
+        </div>
+        <fieldset class="chips">
+          <legend>전류 위상차 (고정) <output id="c-phi-now" class="unit"></output></legend>
+          <label><input type="radio" name="c-phi" value="0" checked><span>0°</span></label>
+          <label><input type="radio" name="c-phi" value="90"><span>90°</span></label>
+          <label><input type="radio" name="c-phi" value="180"><span>180°</span></label>
+        </fieldset>
+        <button id="btn-solve" class="primary">이 목표로 맞추기</button>
+        <div id="solve-result" class="result-card" hidden>
+          <p id="solve-message" class="message"></p>
+          <dl class="found">
+            <div><dt>총 전력</dt><dd id="f-P"></dd></div>
+            <div><dt>전류비 k</dt><dd id="f-k"></dd></div>
+            <div><dt>안쪽 코일 전류</dt><dd id="f-Iin"></dd></div>
+            <div><dt>바깥쪽 코일 전류</dt><dd id="f-Iout"></dd></div>
+          </dl>
+          <p class="fine" id="solve-meta"></p>
+        </div>
+      </div>
+
+      <!-- 직접 조정: 세 입력을 손으로 바꾸며 바로 계산한다 -->
+      <div id="panel-manual" role="tabpanel" hidden>
+        <p class="hint">슬라이더를 움직이면 바로 다시 계산합니다.</p>
+        <div class="slider">
+          <label for="m-P">총 전력 P<sub>tot</sub></label>
+          <output id="m-P-out"></output>
+          <input id="m-P" type="range" step="5">
+        </div>
+        <div class="slider">
+          <label for="m-k">전류비 k <span class="unit">바깥쪽 ÷ 안쪽</span></label>
+          <output id="m-k-out"></output>
+          <input id="m-k" type="range" step="0.05" class="k-range">
+          <div class="ends"><span class="in">안쪽 코일 위주</span><span class="out">바깥쪽 코일 위주</span></div>
+        </div>
+        <div class="slider">
+          <label for="m-phi">전류 위상차 φ</label>
+          <output id="m-phi-out"></output>
+          <input id="m-phi" type="range" step="5">
+        </div>
+        <button id="btn-jac" class="secondary">이 운전점의 제어 민감도 계산</button>
+        <div id="jac-result" class="result-card" hidden>
+          <table class="jac">
+            <thead><tr><th></th><th>전력 1 %↑</th><th>전류비 1 %↑</th><th>위상 1 rad↑</th></tr></thead>
+            <tbody>
+              <tr><th>평균 밀도</th><td id="j00"></td><td id="j01"></td><td id="j02"></td></tr>
+              <tr><th>밀도비</th><td id="j10"></td><td id="j11"></td><td id="j12"></td></tr>
+            </tbody>
+          </table>
+          <p class="fine" id="jac-meta"></p>
+        </div>
+      </div>
+
+      <!-- 두 방식 공통 조건 -->
+      <div class="common">
+        <h2>운전 조건</h2>
+        <div class="slider">
+          <label for="c-p">압력</label>
+          <output id="c-p-out"></output>
+          <input id="c-p" type="range" step="1">
+        </div>
+        <label class="select">코일 구성
+          <select id="c-mode"></select>
+        </label>
+        <label class="select">계산 모델
+          <select id="c-transport">
+            <option value="1d">빠름: 반경 1D 수송</option>
+            <option value="2d">정밀: (r, z) 2D 수송</option>
+          </select>
+        </label>
+      </div>
+    </section>
+
+    <!-- ============ 오른쪽: 결과 ============ -->
+    <section class="results" aria-label="결과">
+      <div class="chamber-row">
+        <figure class="chamber">
+          <div class="chamber-head">
+            <figcaption>챔버 단면 <span class="fine">왼쪽 끝이 중심축, 아래가 웨이퍼</span></figcaption>
+            <div class="seg" role="radiogroup" aria-label="표시할 양">
+              <button data-map="ne" aria-pressed="true">전자 밀도</button>
+              <button data-map="p_abs" aria-pressed="false">흡수 전력</button>
+              <button data-map="E_abs" aria-pressed="false">전기장</button>
+              <button data-map="Te" aria-pressed="false">전자온도</button>
+            </div>
+          </div>
+          <canvas id="chamber" width="760" height="380"></canvas>
+        </figure>
+
+        <div class="readout">
+          <div class="big">
+            <span class="label">웨이퍼 위 평균 밀도</span>
+            <span class="value"><b id="r-n">–</b> <small>×10¹⁶ m⁻³</small></span>
+            <span class="target" id="r-n-target"></span>
+          </div>
+          <div class="big">
+            <span class="label">밀도비 ρ = 중앙 ÷ 가장자리</span>
+            <span class="value"><b id="r-rho">–</b></span>
+            <span class="target" id="r-rho-target"></span>
+          </div>
+          <dl class="small">
+            <div><dt><i class="dot in"></i>중앙 밀도</dt><dd id="r-nc">–</dd></div>
+            <div><dt><i class="dot out"></i>가장자리 밀도</dt><dd id="r-ne">–</dd></div>
+            <div><dt>흡수 전력</dt><dd id="r-pabs">–</dd></div>
+            <div><dt>코일 전류 (안 / 밖)</dt><dd id="r-I">–</dd></div>
+            <div><dt>전자온도</dt><dd id="r-te">–</dd></div>
+          </dl>
+        </div>
+      </div>
+
+      <div class="chart-row">
+        <figure class="chart">
+          <figcaption>웨이퍼 위 전자 밀도 분포 <span class="fine">옅은 선은 바로 전 결과</span></figcaption>
+          <canvas id="profile" width="560" height="280"></canvas>
+        </figure>
+        <figure class="chart">
+          <figcaption>전자온도와 가열 분포</figcaption>
+          <canvas id="heat" width="560" height="280"></canvas>
+        </figure>
+      </div>
+      <p class="note">전자기장은 (r, z) 2D, 수송은 선택한 모델로 푼 정상상태 결과입니다. 국소 Maxwell 분포와 유체 수송을 가정한 모델 안에서의 값이며, 장비에서 검증한 값이 아닙니다.</p>
+    </section>
+  </main>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

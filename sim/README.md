@@ -18,6 +18,7 @@ python sim/presentation1_figures.py                # 1차 발표 그림 3종 (R 
 python sim/theory_note_check.py                    # 팀 이론 정리 문서(11-09)의 압력별 수치 재현, 자화 수송 표(3 G 포함), 교차 성분별 거리
 python sim/k_operating_point.py 20                 # 운전점(중앙 몫 x)에 따른 J 변화, R = 1의 J로 한 선형 예측 오차, 고정 J 반복과 도달 한계
 python sim/feedback_demo.py                        # 바깥 루프 되먹임 예: 피드포워드 + 적분 보정, K̂ 오차 3경우 (조정절차 7절)
+python sim/app/server.py                           # 독립 제어 GUI (브라우저): 목표 (평균 밀도, 밀도비) → 입력 찾기, 세 입력을 직접 바꾸는 시뮬레이션 (sim/app/README.md)
 python sim/run_hybrid.py all                       # 전자기장 2D + 수송 반경 1D 자기일관 모델: 검산, 운전점, J_ctrl, 등평균 스캔, 지도, 타이밍 (sim/hybrid/README.md)
 ```
 
