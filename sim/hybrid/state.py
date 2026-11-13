@@ -62,8 +62,73 @@ class PlasmaState:
         """관측 높이 z_w 에서의 반경 방향 밀도 n_w(r) [m^-3]."""
         return self.ne_rz(np.array([cfg.geom.z_w]), cfg)[0]
 
+    def midplane(self, cfg: Config) -> np.ndarray:
+        """중간 높이(z = L/2) 밀도 [m^-3]."""
+        return self.n0
+
+    def Te_radial(self) -> np.ndarray:
+        """반경별 대표 전자온도 [V]."""
+        return self.Te
+
+    def column(self, cfg: Config, grid: Grid) -> dict:
+        """z 로 적분한 양: 면밀도 N [m^-2], 이온화 G [1/(m^2 s)], 위·아래 벽 손실 주파수 ν_L [1/s]."""
+        _, nuL, gbar = ph.axial_mode(self.Te, cfg)
+        N = self.n0 * gbar * cfg.geom.L
+        return dict(N=N, G=cfg.op.n_gas * ph.K_iz(self.Te) * N, nuL=nuL)
+
     @staticmethod
     def from_zero_d(grid: Grid, cfg: Config) -> "PlasmaState":
         """0D 균형값을 모든 셀에 똑같이 깐 초기 상태 (발표 덱 8쪽 식 1)."""
         Te0, n_star = ph.zero_d_initial(cfg)
         return PlasmaState(np.full(grid.Nr, n_star), np.full(grid.Nr, Te0))
+
+
+@dataclass
+class PlasmaState2D:
+    """(r, z) 2D 수송 모델의 상태. 배열 모양은 (Nz_plasma, Nr) 이고 z 격자는 Grid 의 플라즈마 셀과 같다."""
+    n: np.ndarray       # 전자 밀도 [m^-3]
+    Te: np.ndarray      # 전자온도 [V]
+    z: np.ndarray       # 셀 중심 z [m], 길이 Nz_plasma
+
+    def copy(self) -> "PlasmaState2D":
+        return PlasmaState2D(self.n.copy(), self.Te.copy(), self.z)
+
+    def _at(self, field: np.ndarray, z: np.ndarray) -> np.ndarray:
+        """z 방향 선형 보간 (요청한 z 가 격자와 같으면 그대로 돌려준다)."""
+        if z.shape == self.z.shape and np.allclose(z, self.z):
+            return field
+        return np.array([[np.interp(zz, self.z, field[:, i]) for i in range(field.shape[1])] for zz in z])
+
+    def ne_rz(self, z: np.ndarray, cfg: Config) -> np.ndarray:
+        return self._at(self.n, z)
+
+    def Te_rz(self, z: np.ndarray) -> np.ndarray:
+        return self._at(self.Te, z)
+
+    def wafer_profile(self, cfg: Config) -> np.ndarray:
+        return self.ne_rz(np.array([cfg.geom.z_w]), cfg)[0]
+
+    def midplane(self, cfg: Config) -> np.ndarray:
+        return self.ne_rz(np.array([0.5 * cfg.geom.L]), cfg)[0]
+
+    def Te_radial(self) -> np.ndarray:
+        """밀도로 가중한 z 평균 전자온도 [V]."""
+        return np.sum(self.n * self.Te, axis=0) / np.sum(self.n, axis=0)
+
+    def column(self, cfg: Config, grid: Grid) -> dict:
+        dz = grid.dz[: grid.Nzp, None]
+        N = np.sum(self.n * dz, axis=0)
+        G = np.sum(cfg.op.n_gas * ph.K_iz(self.Te) * self.n * dz, axis=0)
+        mu = ph.ion_mobility(cfg)
+        loss = 0.0
+        for row in (0, -1):                                   # 바닥과 창 쪽 벽의 Bohm 유출
+            uB = ph.bohm_speed(self.Te[row])
+            loss = loss + self.n[row] / (1.0 + uB * grid.dz[0] / (2 * mu * self.Te[row])) * uB
+        return dict(N=N, G=G, nuL=loss / N)
+
+    @staticmethod
+    def from_radial(st: PlasmaState, grid: Grid, cfg: Config) -> "PlasmaState2D":
+        """반경 1D 해를 기본 모드 가정으로 펼쳐 2D 초기 상태를 만든다."""
+        zp = grid.z[: grid.Nzp]
+        return PlasmaState2D(st.ne_rz(zp, cfg).copy(), st.Te_rz(zp).copy(), zp)
+

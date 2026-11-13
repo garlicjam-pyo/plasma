@@ -39,4 +39,6 @@
 | `hybrid/iso_mean_scan.png`, `.csv` | n̄_w 를 고정하고 k 를 훑었을 때의 ρ, 필요한 P_tot, 분포 모양 (φ = 0, 90, 180°) | `iso` |
 | `hybrid/response_map.png`, `.csv` | P_tot 고정, (k, φ) 평면의 ρ 지도와 n̄_w 등고선 | `map` |
 | `hybrid/timing.png`, `.csv` | 격자별 계산 시간, 예산 대비 마진, 격자 오차 | `timing` |
+| `hybrid/validate2d.png`, `.csv` | 반경 1D 수송과 (r, z) 2D 수송의 비교: 밀도 비 지도, 2D T_e, z 분포, 웨이퍼 분포, J_ctrl, 운전점별 차 | `validate2d` |
+| `hybrid/point_dual_P300_k1_phi0_2d.png` 와 같은 이름의 데이터 | 2D 수송으로 푼 기준 운전점 | `point --transport 2d` |
 

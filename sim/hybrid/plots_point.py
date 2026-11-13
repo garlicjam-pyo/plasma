@@ -47,7 +47,9 @@ def plot_point(sol: Solution, path: Path) -> None:
     # --- 윗줄: 2D 지도 세 장
     _map(ax[0, 0], sol, np.abs(heat.E), g.z, "(a) 유도 전기장 |E_θ|  (● 안쪽 코일 ● 바깥쪽 코일)", "V/m", "viridis")
     _map(ax[0, 1], sol, heat.p_abs * 1e-3, zp, "(b) 흡수 전력 밀도 p_abs", "kW/m³", "inferno")
-    _map(ax[0, 2], sol, st.ne_rz(zp, cfg) * 1e-16, zp, "(c) 전자 밀도 n_e (z 방향은 기본 모드 가정)", "10¹⁶ m⁻³", "cividis")
+    two_d = cfg.num.transport == "full_2d"
+    _map(ax[0, 2], sol, st.ne_rz(zp, cfg) * 1e-16, zp,
+         "(c) 전자 밀도 n_e (2D 수송)" if two_d else "(c) 전자 밀도 n_e (z 방향은 기본 모드 가정)", "10¹⁶ m⁻³", "cividis")
     ax[0, 2].axhline(geo.z_w * CM, color="white", lw=1.0, ls="--")
     ax[0, 2].text(geo.R * CM * 0.98, geo.z_w * CM + 0.12, "관측면 z = z_w", color="white", ha="right", fontsize=8)
     # --- (d) 웨이퍼 높이 분포와 지표
@@ -55,7 +57,7 @@ def plot_point(sol: Solution, path: Path) -> None:
     n_w = st.wafer_profile(cfg) * 1e-16
     a.axvspan(0, geo.r_c * CM, color=BLUE, alpha=0.13, lw=0)
     a.axvspan(geo.r_1 * CM, geo.r_2 * CM, color=ORANGE, alpha=0.16, lw=0)
-    a.plot(g.r * CM, st.n0 * 1e-16, color=MUTED, lw=1.2, ls="--", label="중간 높이 n0(r)")
+    a.plot(g.r * CM, st.midplane(cfg) * 1e-16, color=MUTED, lw=1.2, ls="--", label="중간 높이 n0(r)")
     a.plot(g.r * CM, n_w, color=INK, lw=2.0, label="관측 높이 n_w(r)")
     a.hlines(m.n_c * 1e-16, 0, geo.r_c * CM, color=BLUE, lw=3)
     a.hlines(m.n_edge * 1e-16, geo.r_1 * CM, geo.r_2 * CM, color=ORANGE, lw=3)
@@ -68,7 +70,7 @@ def plot_point(sol: Solution, path: Path) -> None:
     a.legend(loc="lower left", frameon=False, fontsize=9)
     # --- (e) 전자온도와 z 적분 가열
     a = ax[1, 1]
-    a.plot(g.r * CM, st.Te, color=INK, lw=2.0)
+    a.plot(g.r * CM, st.Te_radial(), color=INK, lw=2.0)
     a.set(xlabel="r [cm]", ylabel="전자온도 T_e [V]", xlim=(0, geo.R * CM), title="(e) 전자온도(검정)와 z 적분 가열 S(주황)")
     b = a.twinx()
     b.fill_between(g.r * CM, heat.S * 1e-3, color=ORANGE, alpha=0.25, lw=0)
@@ -89,6 +91,7 @@ def plot_point(sol: Solution, path: Path) -> None:
           title=f"(f) 수렴 이력: {len(it)}회, {sol.timing['total']*1e3:.0f} ms")
     a.legend(frameon=False, fontsize=8, loc="upper right")
     mode = {"dual": "이중 코일", "single_series": "단일 코일(전 턴 직렬)", "single_inner": "단일 코일(안쪽만)"}[op.coil_mode]
+    mode += " · 2D 수송" if two_d else " · 반경 1D 수송"
     fig.suptitle(f"{mode} · {op.p_mtorr:g} mTorr Ar · P_tot = {op.P_tot:g} W · k = {k:g} · φ = {np.degrees(phi):g}°"
                  f"   →   I_0 = {heat.I0:.2f} A,  P_abs = {heat.P_abs:.0f} W", fontsize=12, fontweight="bold")
     fig.savefig(path, dpi=150)

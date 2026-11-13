@@ -1,4 +1,4 @@
-# hybrid — 전자기장 2D + 수송 반경 1D 자기일관 모델
+# hybrid — 전자기장 2D + 수송 반경 1D 자기일관 모델 (2D 수송 검증판 포함)
 
 세 입력 (P_tot, k, φ) 에서 웨이퍼 지표 (n̄_w, ρ) 를 계산하고, 제어 민감도 행렬 J_ctrl (2×3) 을 구한다.
 1차 발표 덱 7–13쪽의 계산 흐름을 그대로 따르되, 수송(n_e, T_e)만 z 로 적분해 r 의 1D 식으로 줄였다.
@@ -10,6 +10,7 @@
 | 초기값 | 0D 입자·전력 균형 (교재 식 2.70, 2.73) | 0D | `physics.py` |
 | 전도도·RF 장 | σ_p (식 2.26), A_θ 방정식, 단위 전류 응답 중첩, 포트 전력으로 I_0 | 2D (r, z) | `em_field.py` |
 | 수송 | 전자 에너지 + 입자 식의 잔차 F(x) = 0, 감쇠 Newton | 1D (r) | `transport_1d.py` |
+| 수송 (검증판) | 같은 식을 z 가정 없이 셀마다 풂, 희소 야코비안 Newton | 2D (r, z) | `transport_2d.py`, `newton.py` |
 | 자기일관 반복 | 장 → 가열 → 수송 → 장 … , 수렴 판정 3종 | | `coupled.py` |
 | 지표 | 면적 가중 평균 n_c, n_edge, n̄_w, ρ | | `metrics.py` |
 | 제어 판정 | J_ctrl (중심 차분), 등평균 스캔, (k, φ) 지도 | | `control.py` |
@@ -27,6 +28,8 @@ python sim/run_hybrid.py jacobian    # J_ctrl: 이중 코일 2×3, 단일 코일
 python sim/run_hybrid.py iso         # 평균 밀도 유지 + k 스캔
 python sim/run_hybrid.py map         # (k, φ) 평면의 ρ·n̄_w 지도
 python sim/run_hybrid.py timing      # 격자별 시간·마진·오차
+python sim/run_hybrid.py validate2d  # 반경 1D 수송과 (r, z) 2D 수송의 비교
+python sim/run_hybrid.py point --transport 2d   # 2D 수송으로 계산 (jacobian, iso, map 도 같은 옵션)
 python sim/run_hybrid.py all
 ```
 
@@ -77,8 +80,26 @@ python sim/run_hybrid.py all
 
 비교 순서는 전자기장(같은 σ 에서 Z, |E_θ|) → 가열 분포 → T_e → n_e 를 권한다. 앞 단계가 맞아야 뒤 단계의 차이를 해석할 수 있다.
 
-## 2D 수송 검증 모듈을 붙일 자리
+## 반경 1D 축소의 오차 (`validate2d`)
 
-`coupled.solve_point` 는 수송 모델에 `residual`, `solve`, `terms` 만 요구하고, 상태 객체에는
-`ne_rz`, `Te_rz`, `wafer_profile` 만 요구한다. 2D 수송은 같은 메서드를 가진 `Transport2D` 와 2D 상태 클래스를
-만들어 `solve_point` 에서 바꿔 끼우면 전자기장·지표·제어·그림·내보내기 모듈을 그대로 쓴다.
+`transport_2d.py` 는 덱 9·10쪽의 식을 (r, z) 셀마다 그대로 푼다. 전자기장·계수·경계 조건은 1D 모델과 같으므로,
+두 결과의 차이는 1D 모델의 두 가정(z 방향 기본 모드, T_e 의 z 균일)에서만 나온다.
+
+| 조건 | n̄_w 차 (1D ÷ 2D − 1) | ρ 차 |
+| --- | --- | --- |
+| 10 mTorr, 운전점 8개 (k 0.5–2, φ 0·180°, 100–600 W, 단일 코일) | +0.9 ~ +1.5 % | −1.1 ~ +0.5 % |
+| 5 mTorr | −1.4 % | +0.3 % |
+| 20 mTorr | +5.3 % | −1.3 % |
+| 50 mTorr | +11.3 % | −3.0 % |
+| 10 mTorr, L = 10 cm | +6.6 % | −1.1 % |
+
+기준점의 J_ctrl 성분은 최대 0.003 차이다(형상 감도 −0.593 대 −0.594).
+2D 해에서 T_e 는 z 방향으로 0.2–0.35 V 차이가 나지만(창 쪽이 높다) 웨이퍼 지표에는 거의 영향이 없다.
+압력이 높거나 챔버가 높을수록 1D 가정이 약해지므로, 20 mTorr 이상이나 L > 6 cm 에서는 2D 로 확인한다.
+
+계산 시간(60×56 격자): 운전점 1D 0.14 s, 2D 는 1D 해에서 출발해 추가 0.2–0.3 s. J_ctrl 은 1D 0.6 s, 2D 1.6 s.
+2D 수송도 예산(1 s, 10 s) 안에 들어온다.
+
+두 수송 모델은 같은 메서드(`initial_state`, `pack`, `unpack`, `residual`, `solve`, `terms`)를 가지며
+`config.Numerics.transport` ("radial_1d" | "full_2d") 로 고른다. 상태 객체도 같은 메서드
+(`ne_rz`, `Te_rz`, `wafer_profile`, `midplane`, `Te_radial`, `column`)를 가져 지표·제어·그림·내보내기 모듈을 함께 쓴다.

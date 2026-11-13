@@ -18,7 +18,6 @@ from pathlib import Path
 
 import numpy as np
 
-from . import physics as ph
 from .coupled import Solution
 from .metrics import ring_average
 
@@ -26,7 +25,7 @@ from .metrics import ring_average
 COLUMNS = {
     "r_m": "반지름 [m]", "z_m": "높이 [m] (웨이퍼 = 0)",
     "n0_m3": "중간 높이 전자 밀도 [m^-3]", "n_wafer_m3": "관측 높이 z_w 의 전자 밀도 [m^-3]",
-    "Te_V": "전자온도 [V]", "S_W_m2": "z 적분 흡수 전력 [W/m^2]",
+    "Te_V": "전자온도 [V] (radial.csv 에서는 z 평균)", "S_W_m2": "z 적분 흡수 전력 [W/m^2]",
     "G_m2s": "z 적분 이온화 생성률 [1/(m^2 s)]", "nuL_1s": "축 방향 벽 손실 주파수 [1/s]",
     "E_abs_V_m": "|E_θ| [V/m]", "E_phase_deg": "E_θ 위상 [deg]", "p_abs_W_m3": "흡수 전력 밀도 [W/m^3]",
     "ne_m3": "전자 밀도 [m^-3]",
@@ -59,8 +58,7 @@ def save_solution(sol: Solution, out_dir: Path, tag: str) -> dict:
     """운전점 하나의 결과를 네 개 파일로 저장하고 경로를 돌려준다."""
     out_dir.mkdir(parents=True, exist_ok=True)
     cfg, g, st, heat = sol.cfg, sol.grid, sol.state, sol.heating
-    x, nuL, gbar = ph.axial_mode(st.Te, cfg)
-    N = st.n0 * gbar * cfg.geom.L
+    col = st.column(cfg, g)                     # z 로 적분한 양 (1D·2D 상태 공통 메서드)
     paths = {k: out_dir / f"{tag}_{k}" for k in ("summary.json", "radial.csv", "field_rz.csv", "convergence.csv")}
     summary = dict(
         config=asdict(cfg), converged=sol.converged, metrics=asdict(sol.metrics), balance=sol.balance,
@@ -69,7 +67,7 @@ def save_solution(sol: Solution, out_dir: Path, tag: str) -> dict:
         Z_port_ohm=sol.unit.Z_port, R_plasma_ohm=sol.unit.R_pl.real, timing=sol.timing, columns=COLUMNS)
     paths["summary.json"].write_text(json.dumps(_jsonable(summary), ensure_ascii=False, indent=2), encoding="utf-8")
     write_csv(paths["radial.csv"], ["r_m", "n0_m3", "n_wafer_m3", "Te_V", "S_W_m2", "G_m2s", "nuL_1s"],
-              zip(g.r, st.n0, st.wafer_profile(cfg), st.Te, heat.S, cfg.op.n_gas * ph.K_iz(st.Te) * N, nuL))
+              zip(g.r, st.midplane(cfg), st.wafer_profile(cfg), st.Te_radial(), heat.S, col["G"], col["nuL"]))
     zp = g.z[: g.Nzp]
     ne, Te = st.ne_rz(zp, cfg), st.Te_rz(zp)
     rows = []

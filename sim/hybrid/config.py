@@ -98,6 +98,7 @@ class Numerics:
     Nr: int = 60                    # 반경 방향 셀 수 (전자기장·수송 공통)
     Nz_plasma: int = 24             # 플라즈마 영역 z 셀 수 (전자기장만 사용)
     Nz_upper: int = 32              # 창 + 코일 + 위쪽 공간 z 셀 수
+    transport: str = "radial_1d"    # 수송 모델: "radial_1d"(z 적분 반경 1D) | "full_2d"(검증용 (r, z) 2D)
     axial_closure: str = "robin"    # 축 방향 손실 닫힘: "robin"(유체 Bohm 경계) | "h_factor"(교재 h_L)
     kappa_scale: float = 1.0        # 전자 열전도도 배수 (모델 민감도용. 아주 크게 주면 T_e 균일 극한)
     # --- 수송 Newton 반복

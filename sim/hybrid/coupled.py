@@ -17,8 +17,9 @@ import numpy as np
 from .config import Config
 from .em_field import EMSolver, Heating, UnitFields
 from .metrics import WaferMetrics, wafer_metrics
-from .state import Grid, PlasmaState
+from .state import Grid
 from .transport_1d import RadialTransport
+from .transport_2d import Transport2D
 
 
 @dataclass
@@ -26,7 +27,7 @@ class Solution:
     """한 운전점의 수렴 결과."""
     cfg: Config
     grid: Grid
-    state: PlasmaState
+    state: object                       # PlasmaState (반경 1D) 또는 PlasmaState2D
     unit: UnitFields
     heating: Heating
     metrics: WaferMetrics
@@ -36,9 +37,9 @@ class Solution:
     timing: dict = field(default_factory=dict)    # 계산 시간 [s]: total, em, transport
 
 
-def balance_report(tr: RadialTransport, state: PlasmaState, heat: Heating) -> dict:
+def balance_report(tr, state, heat: Heating) -> dict:
     """전체 체적의 입자·에너지 수지 (덱 11쪽 수렴 판정 ②③)."""
-    t = tr.terms(state, heat.S)
+    t = tr.terms(state, heat)
     gen, ax, rad = t["gen"].sum(), t["loss_axial"].sum(), t["wall_radial_n"]
     p_in = t["heat"].sum()
     p_out = dict(coll=t["coll"].sum(), wall_axial=t["wall_axial"].sum(),
@@ -49,12 +50,17 @@ def balance_report(tr: RadialTransport, state: PlasmaState, heat: Heating) -> di
                 energy_error=(p_in - sum(p_out.values())) / p_in)
 
 
-def solve_point(cfg: Config, guess: PlasmaState | None = None, verbose: bool = False) -> Solution:
+def make_transport(grid: Grid, cfg: Config):
+    """설정에 따라 수송 모델을 고른다. 두 모델은 같은 메서드(initial_state, pack, unpack, residual, solve, terms)를 가진다."""
+    return Transport2D(grid, cfg) if cfg.num.transport == "full_2d" else RadialTransport(grid, cfg)
+
+
+def solve_point(cfg: Config, guess=None, verbose: bool = False) -> Solution:
     """운전점 하나를 수렴시킨다. `guess` 를 주면 그 상태에서 출발한다(가까운 운전점의 해 재사용)."""
     t_start = time.perf_counter()
     grid = Grid(cfg)
-    em, tr = EMSolver(grid, cfg), RadialTransport(grid, cfg)
-    state = guess.copy() if guess is not None else PlasmaState.from_zero_d(grid, cfg)
+    em, tr = EMSolver(grid, cfg), make_transport(grid, cfg)
+    state = tr.initial_state(guess)
     history, t_em, t_tr, converged = [], 0.0, 0.0, False
     alpha = cfg.num.relax
     for m in range(cfg.num.outer_max + 1):
@@ -62,12 +68,15 @@ def solve_point(cfg: Config, guess: PlasmaState | None = None, verbose: bool = F
         unit = em.solve_unit(state)                  # 5.2–5.3: 전도도와 단위 전류 장
         heat = em.heating(unit)                      # 5.4–5.5: I_0 와 흡수 전력
         t1 = time.perf_counter()
-        coupled_res = float(np.max(np.abs(tr.residual(tr.pack(state), heat.S))))
-        res = tr.solve(heat.S, state)                # 5.6–5.8: 에너지–입자 연립
+        x_old = tr.pack(state)                       # x = [ln(n/n_ref), T_e]
+        coupled_res = float(np.max(np.abs(tr.residual(x_old, heat))))
+        res = tr.solve(heat, state)                  # 5.6–5.8: 에너지–입자 연립
         t2 = time.perf_counter()
         t_em += t1 - t0; t_tr += t2 - t1
-        d_n = float(np.max(np.abs(np.log(res.state.n0 / state.n0))))
-        d_T = float(np.max(np.abs(res.state.Te / state.Te - 1.0)))
+        x_new = tr.pack(res.state)
+        half = x_old.size // 2
+        d_n = float(np.max(np.abs(x_new[:half] - x_old[:half])))
+        d_T = float(np.max(np.abs(x_new[half:] / x_old[half:] - 1.0)))
         bal = balance_report(tr, state, heat)
         history.append(dict(iter=m, coupled_residual=coupled_res, d_ln_n=d_n, d_Te=d_T,
                             newton_iters=res.iterations, I0=heat.I0, P_abs=heat.P_abs,
@@ -80,9 +89,7 @@ def solve_point(cfg: Config, guess: PlasmaState | None = None, verbose: bool = F
             break
         if not res.converged:
             alpha = max(0.3, 0.5 * alpha)            # 안쪽 Newton 이 실패하면 완화를 강하게
-        # 완화: 밀도는 로그 값으로, 온도는 그대로 섞는다
-        state = PlasmaState(np.exp((1 - alpha) * np.log(state.n0) + alpha * np.log(res.state.n0)),
-                            (1 - alpha) * state.Te + alpha * res.state.Te)
+        state = tr.unpack((1 - alpha) * x_old + alpha * x_new)   # 완화: 밀도는 로그 값으로 섞인다
     total = time.perf_counter() - t_start
     return Solution(cfg, grid, state, unit, heat, wafer_metrics(state, grid, cfg),
                     balance_report(tr, state, heat), history, converged,

@@ -8,7 +8,7 @@ z 로 적분한 양 N(r) = ∫n dz = n0·ḡ·L [m^-2] 에 대해 셀마다 수�
     에너지 : ∇_r·q̂ = S + (J·E)_r − e N [C(T_e) + ν_L·7.2 T_e] ,
              q̂ = (5/2) e T_e Γ̂ − κ̂_e ∂T_e/∂r
 
-S(r) = ∫p_abs dz 는 전자기장 모듈이 준다. ν_L 은 위·아래 벽 손실 주파수,
+S(r) = ∫p_abs dz 는 전자기장 모듈이 준다(Heating.S). ν_L 은 위·아래 벽 손실 주파수,
 C(T_e) 는 충돌 손실률, 7.2 T_e 는 벽으로 나가는 쌍 하나가 가져가는 에너지다.
 측벽(r = R)에서는 Bohm 유출 Γ̂ = N_w u_B, q̂ = e Γ̂ (2 T_e + V_s) 를 쓴다.
 
@@ -22,12 +22,14 @@ import numpy as np
 
 from . import physics as ph
 from .config import E_CHARGE as e, M_ELECTRON as me, Config
+from .em_field import Heating
+from .newton import damped_newton
 from .state import Grid, PlasmaState
 
 
 @dataclass
 class TransportResult:
-    state: PlasmaState
+    state: object                       # PlasmaState (1D) 또는 PlasmaState2D
     iterations: int
     residual_history: list = field(default_factory=list)   # Newton 반복별 max|F|
     converged: bool = False
@@ -46,6 +48,10 @@ class RadialTransport:
         self.scale_n = grid.area * n_star * cfg.geom.L * nuL0[0]            # 입자 수지 [1/s]
         self.scale_e = self.scale_n * e * 50.0                              # 에너지 수지 [W] (쌍당 약 50 V)
 
+    def initial_state(self, guess=None) -> PlasmaState:
+        """출발 상태. guess 가 없으면 0D 균형값을 모든 셀에 깐다."""
+        return guess.copy() if guess is not None else PlasmaState.from_zero_d(self.grid, self.cfg)
+
     # ------------------------------------------------------------------ 변수 변환
     def pack(self, st: PlasmaState) -> np.ndarray:
         return np.concatenate([np.log(st.n0 / self.n_ref), st.Te])
@@ -55,9 +61,9 @@ class RadialTransport:
         return PlasmaState(self.n_ref * np.exp(x[:N]), x[N:].copy())
 
     # ------------------------------------------------------------------ 수지 항
-    def terms(self, st: PlasmaState, S: np.ndarray) -> dict:
+    def terms(self, st: PlasmaState, heat: Heating) -> dict:
         """셀별 입자·에너지 수지의 각 항을 계산한다. 단위: 입자 [1/s], 에너지 [W]."""
-        g, cfg = self.grid, self.cfg
+        g, cfg, S = self.grid, self.cfg, heat.S
         n0, Te, dr = st.n0, st.Te, g.dr
         _, nuL, gbar = ph.axial_mode(Te, cfg)
         N = n0 * gbar * cfg.geom.L                           # z 적분 밀도 [m^-2]
@@ -96,14 +102,14 @@ class RadialTransport:
             wall_radial_n=out_n[-1], wall_radial_e=out_e[-1],
         )
 
-    def residual(self, x: np.ndarray, S: np.ndarray) -> np.ndarray:
+    def residual(self, x: np.ndarray, heat: Heating) -> np.ndarray:
         """무차원 잔차 벡터 F(x) (길이 2 Nr). 앞 절반이 입자 수지, 뒤 절반이 에너지 수지."""
-        t = self.terms(self.unpack(x), S)
+        t = self.terms(self.unpack(x), heat)
         F_n = (t["div_n"] + t["loss_axial"] - t["gen"]) / self.scale_n
         F_e = (t["div_e"] + t["coll"] + t["wall_axial"] - t["heat"] - t["work"]) / self.scale_e
         return np.concatenate([F_n, F_e])
 
-    def jacobian(self, x: np.ndarray, S: np.ndarray, F0: np.ndarray) -> np.ndarray:
+    def jacobian(self, x: np.ndarray, heat: Heating, F0: np.ndarray) -> np.ndarray:
         """유한차분 야코비안. 셀 i 의 잔차는 i−1, i, i+1 셀에만 의존하므로
         3칸 간격으로 묶어 한꺼번에 흔들면 잔차 계산 6번으로 전체 행렬이 나온다."""
         N = self.grid.Nr
@@ -114,7 +120,7 @@ class RadialTransport:
                 idx = cells[color::3] + var * N
                 h = 1e-7 * np.maximum(1.0, np.abs(x[idx]))
                 xp = x.copy(); xp[idx] += h
-                dF = self.residual(xp, S) - F0
+                dF = self.residual(xp, heat) - F0
                 for c, hc in zip(cells[color::3], h):        # 각 열을 해당 셀 주변 행에만 기록
                     rows = np.arange(max(c - 1, 0), min(c + 2, N))
                     rows = np.concatenate([rows, rows + N])
@@ -122,26 +128,9 @@ class RadialTransport:
         return J
 
     # ------------------------------------------------------------------ Newton 풀이
-    def solve(self, S: np.ndarray, guess: PlasmaState) -> TransportResult:
-        """가열 S(r) 가 주어졌을 때 F(x) = 0 을 감쇠 Newton 법으로 푼다."""
-        num, N = self.cfg.num, self.grid.Nr
-        x = self.pack(guess)
-        F = self.residual(x, S)
-        hist = [float(np.max(np.abs(F)))]
-        for it in range(1, num.newton_max + 1):
-            if hist[-1] < num.newton_tol:
-                return TransportResult(self.unpack(x), it - 1, hist, True)
-            dx = np.linalg.solve(self.jacobian(x, S, F), -F)
-            # 한 번에 너무 멀리 가지 않게 제한: ln n 은 1, T_e 는 30 %
-            lim = np.concatenate([np.full(N, 1.0), 0.3 * x[N:]])
-            dx *= min(1.0, 1.0 / np.max(np.abs(dx) / lim))
-            lam = 1.0
-            for _ in range(10):                              # 잔차가 줄 때까지 보폭을 반으로
-                x_new = x + lam * dx
-                F_new = self.residual(x_new, S)
-                if np.all(np.isfinite(F_new)) and np.max(np.abs(F_new)) < hist[-1]:
-                    break
-                lam *= 0.5
-            x, F = x_new, F_new
-            hist.append(float(np.max(np.abs(F))))
-        return TransportResult(self.unpack(x), num.newton_max, hist, hist[-1] < num.newton_tol)
+    def solve(self, heat: Heating, guess: PlasmaState) -> TransportResult:
+        """가열이 주어졌을 때 F(x) = 0 을 감쇠 Newton 법으로 푼다."""
+        num = self.cfg.num
+        res = damped_newton(lambda x: self.residual(x, heat), lambda x, F: self.jacobian(x, heat, F),
+                            self.pack(guess), num.newton_tol, num.newton_max)
+        return TransportResult(self.unpack(res.x), res.iterations, res.residual_history, res.converged)

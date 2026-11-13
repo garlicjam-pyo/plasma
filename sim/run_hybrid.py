@@ -7,6 +7,8 @@
     python sim/run_hybrid.py map                     # (k, φ) 평면의 ρ·n̄_w 지도
     python sim/run_hybrid.py timing                  # 격자별 계산 시간·마진·격자 오차
     python sim/run_hybrid.py check                   # 자체 검산 (포인팅·상반성·보존·T_e 균일 극한의 해석해)
+    python sim/run_hybrid.py validate2d              # 반경 1D 수송을 (r, z) 2D 수송과 비교 (축소 오차)
+    python sim/run_hybrid.py point --transport 2d    # 2D 수송으로 운전점 계산 (jacobian, iso, map 에도 쓸 수 있음)
     python sim/run_hybrid.py compare 파일 [--r-scale 0.01 --n-scale 1e6]   # 외부(COMSOL) 분포와 비교
     python sim/run_hybrid.py all                     # 위 계산을 차례로 모두
 
@@ -23,7 +25,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from hybrid import control, export, plots_control, plots_point, timing, verify  # noqa: E402
+from hybrid import control, export, plots_control, plots_point, plots_validate, timing, validate, verify  # noqa: E402
 from hybrid.config import Config  # noqa: E402
 from hybrid.coupled import solve_point  # noqa: E402
 
@@ -32,13 +34,14 @@ OUT = Path(__file__).resolve().parent.parent / "figures" / "hybrid"
 
 def make_config(a) -> Config:
     """명령줄 인자를 설정에 반영한다."""
-    return Config().with_op(P_tot=a.P, k=a.k, phi=np.radians(a.phi), p_mtorr=a.p, coil_mode=a.mode)
+    cfg = Config().with_op(P_tot=a.P, k=a.k, phi=np.radians(a.phi), p_mtorr=a.p, coil_mode=a.mode)
+    return cfg.with_num(transport="full_2d" if a.transport == "2d" else "radial_1d")
 
 
 def cmd_point(a) -> None:
     cfg = make_config(a)
     sol = solve_point(cfg, verbose=True)
-    tag = f"point_{a.mode}_P{a.P:g}_k{a.k:g}_phi{a.phi:g}"
+    tag = f"point_{a.mode}_P{a.P:g}_k{a.k:g}_phi{a.phi:g}" + ("_2d" if a.transport == "2d" else "")
     paths = export.save_solution(sol, OUT, tag)
     plots_point.plot_point(sol, OUT / f"{tag}.png")
     m, b = sol.metrics, sol.balance
@@ -126,6 +129,22 @@ def cmd_check(a) -> None:
         raise SystemExit("검산 실패 항목이 있습니다.")
 
 
+def cmd_validate2d(a) -> None:
+    study = validate.validation_study(make_config(a))
+    keys = list(study["rows"][0].keys())
+    export.write_csv(OUT / "validate2d.csv", keys, [[r[k] for k in keys] for r in study["rows"]])
+    plots_validate.plot_validation(study, OUT / "validate2d.png")
+    print("운전점               n̄_w 차[%]   ρ 차[%]   T_e z차[V]   1D[s]  2D[s]")
+    for r in study["rows"]:
+        print(f"{r['case']:18s} {100*r['err_n_bar']:+9.2f} {100*r['err_rho']:+9.2f} {r['Te_z_spread']:10.2f} "
+              f"{r['t_1d_s']:8.2f} {r['t_2d_s']:6.2f}")
+    j1, j2 = study["jac_1d"], study["jac_2d"]
+    np.set_printoptions(precision=4, linewidth=140)
+    print("J_norm (1D)"); print(j1.J_norm); print("J_norm (2D)"); print(j2.J_norm)
+    print(f"J 성분 최대 차 {study['err_J']:.4f} · 형상 감도 1D {j1.shape_gain} / 2D {j2.shape_gain}")
+    print(f"J_ctrl 계산 시간 1D {j1.seconds:.2f} s / 2D {j2.seconds:.2f} s · 저장: {OUT / 'validate2d.png'}")
+
+
 def cmd_compare(a) -> None:
     sol = solve_point(make_config(a))
     data = export.load_table(Path(a.file), scale=(a.r_scale, a.n_scale))
@@ -139,20 +158,21 @@ def cmd_compare(a) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("command", choices=["point", "jacobian", "iso", "map", "timing", "check", "compare", "all"])
+    ap.add_argument("command", choices=["point", "jacobian", "iso", "map", "timing", "check", "validate2d", "compare", "all"])
     ap.add_argument("file", nargs="?", help="compare 에서 읽을 외부 결과 파일 (열: r, 값 또는 r, z, 값)")
     ap.add_argument("--P", type=float, default=300.0, help="총 공급 전력 [W]")
     ap.add_argument("--k", type=float, default=1.0, help="전류 크기비")
     ap.add_argument("--phi", type=float, default=0.0, help="위상차 [deg]")
     ap.add_argument("--p", type=float, default=10.0, help="압력 [mTorr]")
     ap.add_argument("--mode", default="dual", choices=["dual", "single_series", "single_inner"])
+    ap.add_argument("--transport", default="1d", choices=["1d", "2d"], help="수송 모델: 반경 1D(기본) 또는 (r, z) 2D 검증판")
     ap.add_argument("--r-scale", type=float, default=1.0, help="외부 파일의 r 을 m 로 바꾸는 배수")
     ap.add_argument("--n-scale", type=float, default=1.0, help="외부 파일의 밀도를 m^-3 로 바꾸는 배수")
     a = ap.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
     table = dict(point=cmd_point, jacobian=cmd_jacobian, iso=cmd_iso, map=cmd_map, timing=cmd_timing,
-                 check=cmd_check, compare=cmd_compare)
-    for name in (["check", "point", "jacobian", "iso", "map", "timing"] if a.command == "all" else [a.command]):
+                 check=cmd_check, validate2d=cmd_validate2d, compare=cmd_compare)
+    for name in (["check", "point", "jacobian", "iso", "map", "timing", "validate2d"] if a.command == "all" else [a.command]):
         print(f"\n===== {name} =====")
         table[name](a)
 
