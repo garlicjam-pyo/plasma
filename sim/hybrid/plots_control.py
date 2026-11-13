@@ -4,6 +4,7 @@ plot_jacobian : J_ctrl 숫자표 + "출력 평면에서 각 입력이 미는 방
 plot_iso_scan : 평균 밀도를 유지한 채 k 를 바꿨을 때의 ρ, 필요한 P_tot, 분포 모양
 plot_map      : (k, φ) 평면의 ρ 지도와 n̄_w 등고선
 plot_timing   : 격자별 계산 시간·마진과 격자 오차
+plot_margin   : 이득 불일치 λ 에 따른 위상 여유 곡선과 시나리오별 위치
 """
 from __future__ import annotations
 
@@ -12,6 +13,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
+from . import loop as lp
 from . import timing as tm
 from .control import ControlJacobian
 from .plots_point import BLUE, CM, INK, MUTED, ORANGE
@@ -143,3 +145,33 @@ def plot_timing(study: dict, path: Path) -> None:
                      f"J_ctrl {rec['t_jacobian_s']:.2f} s (마진 {rec['margin_jacobian']:.0f}배)", fontsize=12, fontweight="bold")
     fig.savefig(path, dpi=150)
     plt.close(fig)
+
+
+def plot_margin(rows: list, path: Path) -> None:
+    """가로축: 실제 이득 ÷ 제어기가 믿는 이득(가장 큰 고유값). 세로축: 위상 여유."""
+    fig, ax = plt.subplots(figsize=(10.5, 5.6), constrained_layout=True)
+    lam = np.linspace(0.15, 4.0, 300)
+    for T_d, col in zip(lp.T_DELAY, (BLUE, ORANGE)):
+        ax.plot(lam, [lp.margins(complex(l), T_d)["pm"] for l in lam], color=col, lw=2, label=f"측정 지연 T_d = {T_d:g} s")
+    for level, text in ((60, "설계 목표 60°"), (30, "최소 30°"), (0, "불안정 경계")):
+        ax.axhline(level, color=MUTED, lw=0.8, ls="--")
+        ax.text(3.98, level + 1.5, text, color=MUTED, ha="right", fontsize=8)
+    T_worst = max(lp.T_DELAY)
+    near_one = [r for r in rows if r["lam_max"] <= 1.1]      # 이득이 거의 그대로인 경우는 한데 묶어 표시
+    for r in rows:
+        pm = lp.margins(complex(r["lam_max"]), T_worst)["pm"]
+        ax.plot(r["lam_max"], pm, "o", color=INK, ms=5)
+        if r["lam_max"] > 1.1:
+            ax.annotate(r["scenario"], (r["lam_max"], pm), xytext=(8, 10), textcoords="offset points", fontsize=9)
+    if near_one:
+        slow = max(near_one, key=lambda r: r["settle_s"])
+        ax.annotate(f"그 밖의 {len(near_one)}가지: λ_max ≈ 1 (여유는 그대로,\n대신 느려짐. 최대 설정 시간 {slow['settle_s']:.0f} s: {slow['scenario']})",
+                    (1.0, lp.margins(1 + 0j, T_worst)["pm"]), xytext=(-150, -70), textcoords="offset points", fontsize=9,
+                    arrowprops=dict(arrowstyle="-", color=MUTED))
+    ax.set(xlabel="이득 불일치 λ_max = 실제 이득 ÷ 제어기가 믿는 이득", ylabel="위상 여유 [deg]", ylim=(-20, 95), xlim=(0, 4),
+           title=f"바깥 루프의 위상 여유 (적분 제어, ω_c = {lp.OMEGA_C:g} rad/s, 구동기 지연 {lp.TAU_ACT:g} s)\n"
+                 f"점: 기준점 J 를 그대로 쓸 때 각 경우의 위치 (T_d = {T_worst:g} s 곡선 위)")
+    ax.legend(frameon=False, loc="lower left")
+    fig.savefig(path, dpi=150)
+    plt.close(fig)
+

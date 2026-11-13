@@ -29,6 +29,7 @@ python sim/run_hybrid.py iso         # 평균 밀도 유지 + k 스캔
 python sim/run_hybrid.py map         # (k, φ) 평면의 ρ·n̄_w 지도
 python sim/run_hybrid.py timing      # 격자별 시간·마진·오차
 python sim/run_hybrid.py validate2d  # 반경 1D 수송과 (r, z) 2D 수송의 비교
+python sim/run_hybrid.py margin      # J_ctrl 을 바깥 제어 루프에 넣었을 때의 위상 여유 어림
 python sim/run_hybrid.py point --transport 2d   # 2D 수송으로 계산 (jacobian, iso, map 도 같은 옵션)
 python sim/run_hybrid.py all
 ```
@@ -103,3 +104,24 @@ python sim/run_hybrid.py all
 두 수송 모델은 같은 메서드(`initial_state`, `pack`, `unpack`, `residual`, `solve`, `terms`)를 가지며
 `config.Numerics.transport` ("radial_1d" | "full_2d") 로 고른다. 상태 객체도 같은 메서드
 (`ne_rz`, `Te_rz`, `wafer_profile`, `midplane`, `Te_radial`, `column`)를 가져 지표·제어·그림·내보내기 모듈을 함께 쓴다.
+
+## 제어 루프와의 연결 (`margin`)
+
+이 모델은 정상상태만 풀므로 위상 여유를 직접 주지 않는다. 플라즈마 응답(0.1 ms 대)이 센서·정합기보다 훨씬 빨라
+루프 안에서 플라즈마는 정적 이득 J_ctrl 이고, 위상은 적분기(−90°), 측정 지연 T_d, 구동기 지연이 정한다(`loop.py`).
+모델이 정하는 것은 "제어기가 믿는 J 와 실제 J 의 불일치"다. M = J_true·J_nom⁻¹ 의 고유값 λ 가 교차 주파수를 λ 배로 옮긴다.
+
+적분 제어 ω_c = 0.2 rad/s, 구동기 지연 0.3 s, 입력 (P_tot, k), 기준점의 1D 모델 J 를 제어기에 넣었을 때:
+
+| 실제 플랜트 | λ_min – λ_max | 위상 여유 (T_d = 1 s / 2 s) | 설정 시간 |
+| --- | --- | --- | --- |
+| 모델과 같음 | 1.00 | 75° / 64° | 20 s |
+| 운전점 이동 (k 0.5–2, 100–600 W) | 0.70 – 1.05 | 74–75° / 62–64° | 20–28 s |
+| 압력 20 mTorr, 열전도 0.3배 | 1.45 – 1.52 | 67–69° / 50–52° | 20 s |
+| 압력 5 mTorr, 열전도 3–10배, 축 닫힘 h_L | 0.22 – 0.56 | 75° / 64° | 36–90 s |
+| 위상을 180° 로 바꿈 | 3.08 | 45° / 10° | 19 s |
+
+모든 경우에 고유값이 양의 실수라서 방향 오차로 인한 위상 손실과 부호 반전은 없다.
+위상을 바꾸면 k 의 형상 이득이 3배가 되므로 J 를 위상별로 따로 두어야 한다(이득 스케줄링).
+지연과 교차 주파수는 docs/조정절차.md 의 가정값이며 장비에서 잰 값이 아니다.
+

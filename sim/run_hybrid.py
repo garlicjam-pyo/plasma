@@ -9,6 +9,7 @@
     python sim/run_hybrid.py check                   # 자체 검산 (포인팅·상반성·보존·T_e 균일 극한의 해석해)
     python sim/run_hybrid.py validate2d              # 반경 1D 수송을 (r, z) 2D 수송과 비교 (축소 오차)
     python sim/run_hybrid.py point --transport 2d    # 2D 수송으로 운전점 계산 (jacobian, iso, map 에도 쓸 수 있음)
+    python sim/run_hybrid.py margin                  # J_ctrl 을 바깥 제어 루프에 넣었을 때의 위상 여유 어림
     python sim/run_hybrid.py compare 파일 [--r-scale 0.01 --n-scale 1e6]   # 외부(COMSOL) 분포와 비교
     python sim/run_hybrid.py all                     # 위 계산을 차례로 모두
 
@@ -25,7 +26,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from hybrid import control, export, plots_control, plots_point, plots_validate, timing, validate, verify  # noqa: E402
+from hybrid import control, export, loop, plots_control, plots_point, plots_validate, timing, validate, verify  # noqa: E402
 from hybrid.config import Config  # noqa: E402
 from hybrid.coupled import solve_point  # noqa: E402
 
@@ -145,6 +146,19 @@ def cmd_validate2d(a) -> None:
     print(f"J_ctrl 계산 시간 1D {j1.seconds:.2f} s / 2D {j2.seconds:.2f} s · 저장: {OUT / 'validate2d.png'}")
 
 
+def cmd_margin(a) -> None:
+    rows = loop.margin_study(make_config(a))
+    keys = list(rows[0].keys())
+    export.write_csv(OUT / "loop_margin.csv", keys, [[r[k] for k in keys] for r in rows])
+    plots_control.plot_margin(rows, OUT / "loop_margin.png")
+    print(f"적분 제어 ω_c = {loop.OMEGA_C} rad/s, 구동기 지연 {loop.TAU_ACT} s, 입력 (P_tot, k), φ 고정")
+    print("경우                  λ_min  λ_max  위상[°]  PM(T_d=1 s)  PM(T_d=2 s)  GM(2 s)  설정 시간[s]")
+    for r in rows:
+        print(f"{r['scenario']:18s} {r['lam_min']:6.2f} {r['lam_max']:6.2f} {r['lam_phase_deg']:7.1f} {r['pm_Td1']:10.1f} "
+              f"{r['pm_Td2']:12.1f} {r['gm_Td2']:8.1f} {r['settle_s']:10.0f}")
+    print("저장:", OUT / "loop_margin.png")
+
+
 def cmd_compare(a) -> None:
     sol = solve_point(make_config(a))
     data = export.load_table(Path(a.file), scale=(a.r_scale, a.n_scale))
@@ -158,7 +172,7 @@ def cmd_compare(a) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("command", choices=["point", "jacobian", "iso", "map", "timing", "check", "validate2d", "compare", "all"])
+    ap.add_argument("command", choices=["point", "jacobian", "iso", "map", "timing", "check", "validate2d", "margin", "compare", "all"])
     ap.add_argument("file", nargs="?", help="compare 에서 읽을 외부 결과 파일 (열: r, 값 또는 r, z, 값)")
     ap.add_argument("--P", type=float, default=300.0, help="총 공급 전력 [W]")
     ap.add_argument("--k", type=float, default=1.0, help="전류 크기비")
@@ -171,8 +185,8 @@ def main() -> None:
     a = ap.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
     table = dict(point=cmd_point, jacobian=cmd_jacobian, iso=cmd_iso, map=cmd_map, timing=cmd_timing,
-                 check=cmd_check, validate2d=cmd_validate2d, compare=cmd_compare)
-    for name in (["check", "point", "jacobian", "iso", "map", "timing", "validate2d"] if a.command == "all" else [a.command]):
+                 check=cmd_check, validate2d=cmd_validate2d, margin=cmd_margin, compare=cmd_compare)
+    for name in (["check", "point", "jacobian", "iso", "map", "timing", "validate2d", "margin"] if a.command == "all" else [a.command]):
         print(f"\n===== {name} =====")
         table[name](a)
 
