@@ -828,12 +828,20 @@ num(s, 23)
 NOTES[23] = ("[부록 A7] sep.py, why_z.py, zgeom.py, nums.py, figs.py (presentations/src/rev1123/calc).", None)
 
 # ---------------------------------------------------------------- 노트
+# 대본(1–14쪽)은 같은 폴더의 script.py 하나에서 관리한다 (문서판 대본과 같은 글).
+import importlib.util  # noqa: E402
+import os  # noqa: E402
+_sp = importlib.util.spec_from_file_location("script", os.path.join(os.path.dirname(os.path.abspath(__file__)), "script.py"))
+SCRIPT = importlib.util.module_from_spec(_sp)
+_sp.loader.exec_module(SCRIPT)
+NOTES[1] = (None, "20분 녹화 발표 (2026-11-23 수정본). 교수님 피드백: 밀도비의 이유, 에너지 수송 용어, 앞부분 축소, "
+                  "단일 코일 r 먼저, 다중 코일 z, COMSOL 검증. 예상 질문의 답을 설명 속에 넣음 (문서판 대본의 마지막 표).")
 for i, sl in enumerate(prs.slides, start=1):
     if i in NOTES:
-        notes(sl, *NOTES[i])
-cover_note = ("[대본 · 0:00–0:25 / 25초]\n안녕하세요, 6조입니다. 저희 주제는 이중 코일 유도 결합 플라즈마에서 중앙과 가장자리의 전자 밀도를 따로 조절하는 것입니다. "
-              "오늘은 그 이론적 배경과, 교수님 피드백을 반영해 다시 세운 모델링 전략을 말씀드리겠습니다.")
-notes(prs.slides[0], cover_note, "20분 녹화 발표 (2026-11-23 수정본). 교수님 피드백: 밀도비의 이유, 에너지 수송 용어, 앞부분 축소, 단일 코일 r 먼저, 다중 코일 z, COMSOL 검증.")
+        script_text, basis = NOTES[i]
+        if i in SCRIPT.S:
+            script_text = SCRIPT.note_text(i)
+        notes(sl, script_text, basis)
 
 prs.core_properties.last_modified_by = "주제 3 팀"
 prs.core_properties.author = "주제 3 팀"
