@@ -25,7 +25,7 @@
 },
 {
 "name": "mode",
-"src": "-D_a\\nabla^2 n=\\nu_{iz}\\,n\\;\\Rightarrow\\;n\\propto J_0\\!\\left(\\dfrac{2.405\\,r}{R}\\right)\\cos\\dfrac{\\pi z}{L}"
+"src": "-D_a\\nabla^2 n=\\nu_{iz}\\,n\\;\\Rightarrow\\;n\\propto J_0\\!\\left(\\dfrac{2.405\\,r}{R}\\right)\\cos\\!\\left[\\dfrac{\\pi}{L}\\left(z-\\dfrac{L}{2}\\right)\\right]"
 },
 {
 "name": "axial",

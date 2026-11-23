@@ -11,7 +11,7 @@ e('isat', r'I_{\mathrm{sat}}=0.61\,e\,n\,u_B A_p\;\Rightarrow\;\dfrac{I_{\mathrm
 # 5 단일 코일 한계
 e('te', r'\dfrac{K_{iz}(T_e)}{u_B(T_e)}=\dfrac{1}{n_g\,d_{\mathrm{eff}}}')
 e('n0', r'n_0=\dfrac{P_{\mathrm{abs}}}{e\,u_B\,\varepsilon_T\,A_{\mathrm{eff}}}')
-e('mode', r'-D_a\nabla^2 n=\nu_{iz}\,n\;\Rightarrow\;n\propto J_0\!\left(\dfrac{2.405\,r}{R}\right)\cos\dfrac{\pi z}{L}')
+e('mode', r'-D_a\nabla^2 n=\nu_{iz}\,n\;\Rightarrow\;n\propto J_0\!\left(\dfrac{2.405\,r}{R}\right)\cos\!\left[\dfrac{\pi}{L}\left(z-\dfrac{L}{2}\right)\right]')
 # 7 1단계 근거
 e('axial', r'n(r,z)\simeq n_0(r)\cos\!\big[k_z\big(z-\tfrac{L}{2}\big)\big],\qquad \Lambda_z=\dfrac{L}{\pi}\approx1.9\ \mathrm{cm},\ \ \Lambda_r=\dfrac{R}{2.405}\approx8.7\ \mathrm{cm}\ \Rightarrow\ \Big(\dfrac{\Lambda_r}{\Lambda_z}\Big)^{2}\approx21')
 e('sep', r'p_{\mathrm{abs}}(r,z)\simeq S(r)\,w(z),\qquad S(r)=\displaystyle\int_0^L p_{\mathrm{abs}}\,dz')
