@@ -29,7 +29,7 @@
 },
 {
 "name": "axial",
-"src": "n(r,z)\\simeq n_0(r)\\cos\\!\\big[k_z\\big(z-\\tfrac{L}{2}\\big)\\big],\\qquad k_z^{-1}\\approx\\dfrac{L}{\\pi}\\approx 1.9\\ \\mathrm{cm}\\ \\ll\\ R=21\\ \\mathrm{cm}"
+"src": "n(r,z)\\simeq n_0(r)\\cos\\!\\big[k_z\\big(z-\\tfrac{L}{2}\\big)\\big],\\qquad \\Lambda_z=\\dfrac{L}{\\pi}\\approx1.9\\ \\mathrm{cm},\\ \\ \\Lambda_r=\\dfrac{R}{2.405}\\approx8.7\\ \\mathrm{cm}\\ \\Rightarrow\\ \\Big(\\dfrac{\\Lambda_r}{\\Lambda_z}\\Big)^{2}\\approx21"
 },
 {
 "name": "sep",
@@ -52,6 +52,10 @@
 "src": "p_{\\mathrm{abs}}=\\tfrac12\\,\\mathrm{Re}(\\sigma_p)\\,\\omega^2I_0^2\\Big[\\textcolor{#3366CC}{|A_{\\mathrm{in}}|^2}+\\textcolor{#B24A16}{k^2|A_{\\mathrm{out}}|^2}+\\textcolor{#303399}{2k\\,|A_{\\mathrm{in}}||A_{\\mathrm{out}}|\\cos(\\varphi+\\psi)}\\Big]"
 },
 {
+"name": "S",
+"src": "S(r)=\\displaystyle\\int_0^L p_{\\mathrm{abs}}\\,dz"
+},
+{
 "name": "S_I0",
 "src": "S(r)=\\displaystyle\\int_0^L p_{\\mathrm{abs}}\\,dz,\\qquad P_{\\mathrm{port}}=\\tfrac12\\,I_0^2\\,\\mathbf a^{\\mathsf H}\\,\\mathrm{Re}(\\mathbf Z)\\,\\mathbf a,\\quad \\mathbf a=\\begin{bmatrix}1\\\\ k\\,e^{j\\varphi}\\end{bmatrix}"
 },
@@ -61,7 +65,7 @@
 },
 {
 "name": "energy",
-"src": "\\underbrace{\\dfrac{1}{r}\\dfrac{d}{dr}\\big(r\\,q_r\\big)}_{\\rule{0pt}{0.62em}\\text{①}}=\\underbrace{\\ S\\vphantom{\\dfrac{1}{r}}\\ }_{\\rule{0pt}{0.62em}\\text{②}}+\\underbrace{J_rE_a\\vphantom{\\dfrac{1}{r}}}_{\\rule{0pt}{0.62em}\\text{③}}-\\underbrace{e\\,N\\,C(T_e)\\vphantom{\\dfrac{1}{r}}}_{\\rule{0pt}{0.62em}\\text{④}}-\\underbrace{e\\,N\\nu_L\\,\\varepsilon_wT_e\\vphantom{\\dfrac{1}{r}}}_{\\rule{0pt}{0.62em}\\text{⑤}}"
+"src": "\\underbrace{\\dfrac{1}{r}\\dfrac{d}{dr}\\big(r\\,q_r\\big)}_{\\rule{0pt}{0.62em}\\text{①}}=\\underbrace{\\ S\\vphantom{\\dfrac{1}{r}}\\ }_{\\rule{0pt}{0.62em}\\text{②}}+\\underbrace{J_{e,r}E_a\\vphantom{\\dfrac{1}{r}}}_{\\rule{0pt}{0.62em}\\text{③}}-\\underbrace{e\\,N\\,C(T_e)\\vphantom{\\dfrac{1}{r}}}_{\\rule{0pt}{0.62em}\\text{④}}-\\underbrace{e\\,N\\nu_L\\,\\varepsilon_wT_e\\vphantom{\\dfrac{1}{r}}}_{\\rule{0pt}{0.62em}\\text{⑤}}"
 },
 {
 "name": "q",
@@ -89,7 +93,7 @@
 },
 {
 "name": "need",
-"src": "\\rho:\\ 1.2\\to0.8\\;\\;\\Rightarrow\\;\\;\\Delta\\ln k=\\dfrac{\\ln(0.8/1.2)}{g_k}=-\\dfrac{0.405}{g_k}"
+"src": "\\rho:\\ 1.2\\to0.8\\;\\;\\Rightarrow\\;\\;\\Delta\\ln k\\approx\\dfrac{\\ln(0.8/1.2)}{g_k}=-\\dfrac{0.405}{g_k}"
 },
 {
 "name": "pabs0",
