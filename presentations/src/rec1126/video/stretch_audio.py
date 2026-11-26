@@ -33,6 +33,12 @@ for a,b,k,o in segs:
             y=np.concatenate([left,np.zeros((add,2),np.float32),right])
     pieces.append(y.astype(np.float32))
 z=np.concatenate(pieces)
+# 이음매마다 3 ms 페이드 (딸깍 소리 방지)
+n=int(0.003*sr); fo=0.5*(1+np.cos(np.linspace(0,np.pi,n)))[:,None]; fi=fo[::-1]; t=0
+for a_,b_,k_,o_ in segs:
+    i=int(round(t*sr))
+    if n<i<len(z)-n: z[i-n:i]*=fo; z[i:i+n]*=fi
+    t+=o_
 # 10 ms crossfade-free joins are in silence; add END hold
 hold=np.zeros((int(M['hold']*sr),2),np.float32); z=np.concatenate([z,hold])
 sf.write('stretched.wav', z, sr, subtype='FLOAT')
